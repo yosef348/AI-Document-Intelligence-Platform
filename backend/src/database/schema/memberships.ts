@@ -1,13 +1,15 @@
 import {
-    pgTable,
-    uuid,
-    text,
-    timestamp,
-    uniqueIndex,
-  } from 'drizzle-orm/pg-core';
-  import { organizations } from './organizations';
-  
-  export const memberships = pgTable('memberships', {
+  pgTable,
+  uuid,
+  text,
+  timestamp,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core';
+import { organizations } from './organizations';
+
+export const memberships = pgTable(
+  'memberships',
+  {
     id: uuid('id').primaryKey().defaultRandom(),
     organizationId: uuid('organization_id')
       .notNull()
@@ -20,12 +22,20 @@ import {
     joinedAt: timestamp('joined_at', { withTimezone: true }),
     createdBy: uuid('created_by'),
     updatedBy: uuid('updated_by'),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-  }, (table) => ({
-    userOrgUnique: uniqueIndex('memberships_user_org_unique')
-      .on(table.userId, table.organizationId),
-  }));
-  
-  export type Membership = typeof memberships.$inferSelect;
-  export type NewMembership = typeof memberships.$inferInsert;
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    userOrgUnique: uniqueIndex('memberships_user_org_unique').on(
+      table.userId,
+      table.organizationId,
+    ),
+  }),
+);
+
+export type Membership = typeof memberships.$inferSelect;
+export type NewMembership = typeof memberships.$inferInsert;
