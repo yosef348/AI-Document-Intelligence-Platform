@@ -27,7 +27,7 @@ export class IngestionService {
       // Step 1: Update parsing status
       await this.updateDocumentParsingStatus(documentId, 'parsing');
 
-      // Step 2: Get document record
+      // Step 2: Get document record (scoped to organizationId for tenant isolation)
       const [document] = await this.db.db
         .select()
         .from(documents)
@@ -37,14 +37,22 @@ export class IngestionService {
         throw new Error(`Document ${documentId} not found`);
       }
 
+      // Verify tenant match to prevent cross-tenant chunk creation
+      if (document.organizationId !== organizationId) {
+        throw new Error(
+          `Organization mismatch: document belongs to ${document.organizationId}, ` +
+          `not ${organizationId}`,
+        );
+      }
+
       // Step 3: Extract text
       const text = await this.extractText(document as Document);
 
-      // Step 4: Split into chunks
-      const textChunks = this.chunkText(text, documentId, organizationId);
+      // Step 4: Split into chunks (use document's organizationId)
+      const textChunks = this.chunkText(text, documentId, document.organizationId);
 
-      // Step 5: Save chunks
-      await this.saveChunks(textChunks);
+      // Step 5: Save chunks atomically
+      await this.saveChunks(documentId, textChunks);
 
       // Step 6: Update parsing status to parsed
       await this.updateDocumentParsingStatus(documentId, 'parsed');
@@ -62,6 +70,8 @@ export class IngestionService {
       } catch (statusError) {
         this.logger.error(`Failed to update document status for ${documentId}`, statusError);
       }
+      // Rethrow the original error after status updates
+      throw error;
     }
   }
 
@@ -98,7 +108,17 @@ export class IngestionService {
   }
 
   private chunkText(text: string, documentId: string, organizationId: string): NewChunk[] {
-    const words = text.split(/\s+/);
+    // Normalize text and filter empty strings
+    const normalizedText = text.trim();
+    if (!normalizedText) {
+      return []; // Return empty array for blank extractions
+    }
+
+    const words = normalizedText.split(/\s+/).filter((word) => word.length > 0);
+    if (words.length === 0) {
+      return [];
+    }
+
     const targetTokens = 512;
     const overlapTokens = 50;
     const tokensPerWord = 1.3; // Simple approximation
@@ -145,13 +165,22 @@ export class IngestionService {
     return chunks;
   }
 
-  private async saveChunks(chunkList: NewChunk[]): Promise<void> {
-    const batchSize = 100;
-
-    for (let i = 0; i < chunkList.length; i += batchSize) {
-      const batch = chunkList.slice(i, i + batchSize);
-      await this.db.db.insert(chunks).values(batch);
+  private async saveChunks(documentId: string, chunkList: NewChunk[]): Promise<void> {
+    // If no chunks to save, return early
+    if (chunkList.length === 0) {
+      return;
     }
+
+    // Use transaction to ensure all chunks are saved atomically
+    await this.db.db.transaction(async (tx) => {
+      const batchSize = 100;
+
+      for (let i = 0; i < chunkList.length; i += batchSize) {
+        const batch = chunkList.slice(i, i + batchSize);
+        // Use transaction's db instance
+        await tx.insert(chunks).values(batch);
+      }
+    });
   }
 
   private async updateDocumentParsingStatus(id: string, status: string): Promise<void> {
