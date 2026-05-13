@@ -20,28 +20,117 @@ interface SelectChain<R extends Row> {
 }
 
 class FakeDbClient {
-  insert<T extends Row>(_table: unknown): InsertBuilder<T> {
-    return {
-      values: () => this.insert<T>(_table),
-      returning: async () => [] as T[],
-    };
+  // very small in-memory store keyed by table object reference
+  private readonly store = new WeakMap<object, Row[]>();
+
+  private getTableRows<T extends Row>(table: unknown): T[] {
+    const key = table as object;
+    if (!this.store.has(key)) {
+      this.store.set(key, []);
+    }
+    return this.store.get(key)! as T[];
   }
 
-  update<T extends Row>(_table: unknown): UpdateBuilder<T> {
-    return {
-      set: () => this.update<T>(_table),
-      where: () => this.update<T>(_table),
-      returning: async () => [] as T[],
-    };
+  private generateId(): string {
+    // lightweight random id; not UUID but sufficient for tests/dev
+    return Math.random().toString(36).slice(2) + Date.now().toString(36);
   }
 
-  select<R extends Row = Row>(_projection?: unknown): SelectChain<R> {
-    const chain: SelectChain<R> = {
-      from: () => chain,
-      innerJoin: async () => [] as R[],
-      where: async () => [] as R[],
-    };
-    return chain;
+  insert<T extends Row>(table: unknown): InsertBuilder<T> {
+    const self = this;
+    let pending: Partial<T> | undefined;
+    return {
+      values(values: Partial<T>) {
+        pending = values;
+        return this;
+      },
+      async returning(): Promise<T[]> {
+        const rows = self.getTableRows<T>(table);
+        const now = new Date();
+        const record: T = {
+          ...(pending as T),
+          id: (pending as Row)?.id ?? self.generateId(),
+          createdAt: (pending as Row)?.createdAt ?? now,
+          updatedAt: now,
+        } as unknown as T;
+        rows.push(record);
+        return [record];
+      },
+    } as InsertBuilder<T>;
+  }
+
+  update<T extends Row>(table: unknown): UpdateBuilder<T> {
+    const self = this;
+    let setValues: Partial<T> | undefined;
+    // where is accepted for API compatibility; simple implementation ignores the condition
+    return {
+      set(values: Partial<T>) {
+        setValues = values;
+        return this;
+      },
+      where(_cond: unknown) {
+        // condition ignored in this lightweight fake; kept for chaining
+        return this;
+      },
+      async returning(): Promise<T[]> {
+        const rows = self.getTableRows<T>(table);
+        const now = new Date();
+        const updated: T[] = rows.map((r) => ({ ...(r as Row), ...(setValues as Row), updatedAt: now }) as T);
+        // replace contents
+        rows.splice(0, rows.length, ...updated);
+        return updated;
+      },
+    } as UpdateBuilder<T>;
+  }
+
+  select<R extends Row = Row>(projection?: unknown): SelectChain<R> {
+    const self = this;
+    let baseTable: unknown;
+    return {
+      from(table: unknown) {
+        baseTable = table;
+        return this;
+      },
+      async innerJoin(joinTable: unknown, _on: unknown): Promise<R[]> {
+        // very small join implementation for organizations x memberships
+        const left = self.getTableRows<Row>(baseTable);
+        const right = self.getTableRows<Row>(joinTable);
+
+        // If projection looks like { organization: organizations }
+        const isOrganizationProjection =
+          typeof projection === 'object' && projection !== null && 'organization' in (projection as Record<string, unknown>);
+
+        const results: unknown[] = [];
+        for (const l of left) {
+          for (const r of right) {
+            // match common pattern: memberships.organizationId === organizations.id
+            const matches =
+              (l as Row).id !== undefined && (r as Row).organizationId !== undefined && (r as Row).organizationId === (l as Row).id;
+            if (matches) {
+              if (isOrganizationProjection) {
+                results.push({ organization: l });
+              } else {
+                results.push({ ...(l as Row), ...(r as Row) });
+              }
+            }
+          }
+        }
+        return results as R[];
+      },
+      async where(_cond: unknown): Promise<R[]> {
+        // return rows from the base table; condition ignored in this lightweight fake
+        const rows = self.getTableRows<Row>(baseTable);
+        if (projection && typeof projection === 'object' && projection !== null) {
+          // shape rows according to simple projection like { organization: organizations }
+          const keys = Object.keys(projection as Record<string, unknown>);
+          if (keys.length === 1) {
+            const key = keys[0];
+            return rows.map((r) => ({ [key]: r } as unknown as R));
+          }
+        }
+        return rows as R[];
+      },
+    } as SelectChain<R>;
   }
 
   // Simple passthrough transaction to satisfy service usage; not a real DB txn
