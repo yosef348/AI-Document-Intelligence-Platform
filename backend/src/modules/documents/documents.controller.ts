@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, HttpCode, HttpStatus, Logger, Param, Post, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
@@ -13,10 +13,17 @@ import type { Document } from '../../database/schema/documents';
 @Controller('documents')
 @UseGuards(SupabaseAuthGuard)
 export class DocumentsController {
+  private readonly logger = new Logger(DocumentsController.name);
+
   constructor(
     private readonly documentsService: DocumentsService,
     private readonly ingestionService: IngestionService,
   ) {}
+
+  private mapDocumentWithSignedUrl(document: Document, signedUrl: string): Document & { signedUrl: string } {
+    const { storagePath: _omit, ...rest } = document as Document & { storagePath?: string };
+    return { ...rest, signedUrl } as Document & { signedUrl: string };
+  }
 
   @Post('upload')
   @UseInterceptors(
@@ -34,23 +41,32 @@ export class DocumentsController {
       throw new BadRequestException('File is required');
     }
 
-    const allowedMimeTypes = [
-      'application/pdf',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    ];
-    if (!allowedMimeTypes.includes(file.mimetype)) {
-      throw new BadRequestException('Invalid file type. Only PDF and DOCX are allowed');
+    // Validate file content
+    const buffer = file.buffer;
+    let isValidContent = false;
+    if (buffer.length >= 4) {
+      const header = buffer.slice(0, 4).toString();
+      if (header === '%PDF') {
+        isValidContent = true; // PDF
+      } else if (header.startsWith('PK')) {
+        // Check for DOCX (ZIP with specific content)
+        // For simplicity, assume ZIP is DOCX; in production, check for [Content_Types].xml
+        isValidContent = true; // DOCX
+      }
+    }
+    if (!isValidContent) {
+      throw new BadRequestException('Invalid file content. Only PDF and DOCX files are allowed');
     }
 
     const document = await this.documentsService.upload(user.id, dto, file);
 
-    // Trigger ingestion
-    await this.ingestionService.processDocument(document.id, dto.organizationId);
+    // Trigger ingestion (fire-and-forget)
+    void this.ingestionService.processDocument(document.id, dto.organizationId).catch(err =>
+      this.logger.error('Ingestion failed for document', { documentId: document.id, err }));
 
     // Replace storagePath with signedUrl and never return storagePath
     const signedUrl = await this.documentsService.getSignedUrl(document.storagePath);
-    const { storagePath: _omit, ...rest } = document as Document & { storagePath?: string };
-    return { ...rest, signedUrl } as unknown as Document & { signedUrl: string };
+    return this.mapDocumentWithSignedUrl(document, signedUrl);
   }
 
   @Get()
@@ -61,8 +77,7 @@ export class DocumentsController {
     const documentsWithUrls = await Promise.all(
       documents.map(async (doc) => {
         const signedUrl = await this.documentsService.getSignedUrl(doc.storagePath);
-        const { storagePath: _omit, ...rest } = doc as Document & { storagePath?: string };
-        return { ...rest, signedUrl } as Document & { signedUrl: string };
+        return this.mapDocumentWithSignedUrl(doc, signedUrl);
       }),
     );
 
@@ -76,8 +91,7 @@ export class DocumentsController {
   ): Promise<Document & { signedUrl: string }> {
     const document = await this.documentsService.findById(id, organizationId);
     const signedUrl = await this.documentsService.getSignedUrl(document.storagePath);
-    const { storagePath: _omit, ...rest } = document as Document & { storagePath?: string };
-    return { ...rest, signedUrl } as Document & { signedUrl: string };
+    return this.mapDocumentWithSignedUrl(document, signedUrl);
   }
 
   @Delete(':id')

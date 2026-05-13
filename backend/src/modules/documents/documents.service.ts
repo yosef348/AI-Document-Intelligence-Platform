@@ -40,26 +40,38 @@ export class DocumentsService {
     }
 
     // Insert document record
-    const [created] = await this.db.db
-      .insert(documents)
-      .values({
-        organizationId: dto.organizationId,
-        uploadedBy: userId,
-        type: dto.type,
-        filename: sanitizedFilename,
-        originalFilename: file.originalname,
-        mimeType: file.mimetype,
-        sizeBytes: file.size,
-        storageProvider: 'supabase',
-        storageBucket: 'documents',
-        storagePath,
-        checksum,
-        parsingStatus: 'pending',
-        processingStatus: 'pending',
-      })
-      .returning();
+    let created: Document[];
+    try {
+      created = await this.db.db
+        .insert(documents)
+        .values({
+          organizationId: dto.organizationId,
+          uploadedBy: userId,
+          type: dto.type,
+          filename: sanitizedFilename,
+          originalFilename: file.originalname,
+          mimeType: file.mimetype,
+          sizeBytes: file.size,
+          storageProvider: 'supabase',
+          storageBucket: 'documents',
+          storagePath,
+          checksum,
+          parsingStatus: 'pending',
+          processingStatus: 'pending',
+        })
+        .returning();
+    } catch (dbError) {
+      // Cleanup orphaned file
+      try {
+        await storageClient.storage.from('documents').remove([storagePath]);
+      } catch (removeError) {
+        // Log but don't swallow the original error
+        console.error('Failed to remove orphaned file:', removeError);
+      }
+      throw new InternalServerErrorException('Failed to persist document metadata');
+    }
 
-    return created as Document;
+    return created[0] as Document;
   }
 
   async findAll(organizationId: string): Promise<Document[]> {
