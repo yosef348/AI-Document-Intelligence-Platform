@@ -331,7 +331,7 @@ return { data: items, count: items.length };
 - [x] configuration.ts with env validation
 
 ### In progress
-- [ ] Auth module
+- [x] Auth module
 
 ### Not started
 - [ ] Organizations module

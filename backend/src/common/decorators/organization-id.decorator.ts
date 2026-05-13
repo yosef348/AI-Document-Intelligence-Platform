@@ -10,6 +10,6 @@ export const OrganizationId = createParamDecorator(
     if (!value || value.trim() === '') {
       throw new BadRequestException('Missing x-organization-id header');
     }
-    return value;
+    return value.trim();
   },
 );
