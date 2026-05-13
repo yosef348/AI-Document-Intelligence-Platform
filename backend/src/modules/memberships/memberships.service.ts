@@ -1,30 +1,36 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { and, eq, isNotNull } from 'drizzle-orm';
 import { DatabaseService } from '../../database/database.service';
 import { memberships } from '../../database/schema';
 import type { Membership } from '../../database/schema';
-import { CreateMembershipDto } from './dto/create-membership.dto';
+import { CreateMembershipDto, ALLOWED_ROLES } from './dto/create-membership.dto';
 
 @Injectable()
 export class MembershipsService {
   constructor(private readonly db: DatabaseService) {}
 
-  async invite(organizationId: string, invitedBy: string, dto: CreateMembershipDto): Promise<Membership> {
-    // Verify inviter has role in ['owner','admin']
-    const [inviterMembership] = await this.db.db
+  private async ensureOwnerOrAdmin(userId: string, organizationId: string): Promise<Membership> {
+    const [membership] = await this.db.db
       .select()
       .from(memberships)
       .where(
         and(
           eq(memberships.organizationId, organizationId),
-          eq(memberships.userId, invitedBy),
+          eq(memberships.userId, userId),
           isNotNull(memberships.joinedAt),
         ),
       );
 
-    if (!inviterMembership || !['owner', 'admin'].includes((inviterMembership as Membership).role)) {
+    if (!membership || !['owner', 'admin'].includes((membership as Membership).role)) {
       throw new ForbiddenException('Insufficient role');
     }
+
+    return membership as Membership;
+  }
+
+  async invite(organizationId: string, invitedBy: string, dto: CreateMembershipDto): Promise<Membership> {
+    // Verify inviter has role in ['owner','admin']
+    await this.ensureOwnerOrAdmin(invitedBy, organizationId);
 
     // Insert into memberships table
     const [created] = await this.db.db
@@ -41,7 +47,10 @@ export class MembershipsService {
     return created as Membership;
   }
 
-  async listByOrganization(organizationId: string): Promise<Membership[]> {
+  async listByOrganization(organizationId: string, requesterId: string): Promise<Membership[]> {
+    // Verify requester is a member of the organization with owner/admin role
+    await this.ensureOwnerOrAdmin(requesterId, organizationId);
+
     const result = await this.db.db
       .select()
       .from(memberships)
@@ -70,20 +79,51 @@ export class MembershipsService {
   }
 
   async updateRole(organizationId: string, userId: string, updatedBy: string, role: string): Promise<Membership> {
+    // Validate role
+    if (!ALLOWED_ROLES.includes(role as any)) {
+      throw new BadRequestException(`Invalid role. Must be one of: ${ALLOWED_ROLES.join(', ')}`);
+    }
+
+    // Prevent self-modification
+    if (updatedBy === userId) {
+      throw new ForbiddenException('Cannot modify your own role');
+    }
+
     // Verify updatedBy has role in ['owner','admin']
-    const [updaterMembership] = await this.db.db
+    await this.ensureOwnerOrAdmin(updatedBy, organizationId);
+
+    // Get target membership to check current role
+    const [targetMembership] = await this.db.db
       .select()
       .from(memberships)
       .where(
         and(
           eq(memberships.organizationId, organizationId),
-          eq(memberships.userId, updatedBy),
+          eq(memberships.userId, userId),
           isNotNull(memberships.joinedAt),
         ),
       );
 
-    if (!updaterMembership || !['owner', 'admin'].includes((updaterMembership as Membership).role)) {
-      throw new ForbiddenException('Insufficient role');
+    if (!targetMembership) {
+      throw new NotFoundException('Membership not found');
+    }
+
+    // Protect last owner: if target is owner and new role is not owner, check owner count
+    if ((targetMembership as Membership).role === 'owner' && role !== 'owner') {
+      const ownerRows = await this.db.db
+        .select()
+        .from(memberships)
+        .where(
+          and(
+            eq(memberships.organizationId, organizationId),
+            eq(memberships.role, 'owner'),
+            isNotNull(memberships.joinedAt),
+          ),
+        );
+
+      if (ownerRows.length === 1) {
+        throw new ForbiddenException('Cannot remove the last owner of the organization');
+      }
     }
 
     // Update membership role
