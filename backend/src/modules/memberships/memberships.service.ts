@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { and, eq, isNotNull, isNull } from 'drizzle-orm';
 import { DatabaseService } from '../../database/database.service';
-import { memberships } from '../../database/schema';
+import { memberships } from '../../database/schema/memberships';
 import type { Membership } from '../../database/schema';
 import { CreateMembershipDto, ALLOWED_ROLES } from './dto/create-membership.dto';
 

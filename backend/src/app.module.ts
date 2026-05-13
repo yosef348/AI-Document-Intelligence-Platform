@@ -8,6 +8,7 @@ import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { MembershipsModule } from './modules/memberships/memberships.module';
+import { DocumentsModule } from './modules/documents/documents.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { MembershipsModule } from './modules/memberships/memberships.module';
     DatabaseModule,
     AuthModule,
     MembershipsModule,
+    DocumentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
