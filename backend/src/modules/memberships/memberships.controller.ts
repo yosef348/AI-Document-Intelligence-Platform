@@ -1,9 +1,10 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, UseGuards, ValidationPipe } from '@nestjs/common';
 import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { User } from '@supabase/supabase-js';
 import { MembershipsService } from './memberships.service';
 import { CreateMembershipDto } from './dto/create-membership.dto';
+import { UpdateMembershipRoleDto } from './dto/update-membership-role.dto';
 import type { Membership } from '../../database/schema';
 
 @Controller('memberships')
@@ -11,23 +12,26 @@ import type { Membership } from '../../database/schema';
 export class MembershipsController {
   constructor(private readonly membershipsService: MembershipsService) {}
 
+  @Get('user')
+  async findByUserId(@CurrentUser() user: User): Promise<Membership[]> {
+    return this.membershipsService.findByUserId(user.id);
+  }
+
   @Post(':orgId/invite')
   async invite(
     @Param('orgId') orgId: string,
     @CurrentUser() user: User,
-    @Body() dto: CreateMembershipDto,
+    @Body(new ValidationPipe()) dto: CreateMembershipDto,
   ): Promise<Membership> {
     return this.membershipsService.invite(orgId, user.id, dto);
   }
 
   @Get(':orgId')
-  async listByOrganization(@Param('orgId') orgId: string): Promise<Membership[]> {
-    return this.membershipsService.listByOrganization(orgId);
-  }
-
-  @Get('user')
-  async findByUserId(@CurrentUser() user: User): Promise<Membership[]> {
-    return this.membershipsService.findByUserId(user.id);
+  async listByOrganization(
+    @Param('orgId') orgId: string,
+    @CurrentUser() user: User,
+  ): Promise<Membership[]> {
+    return this.membershipsService.listByOrganization(orgId, user.id);
   }
 
   @Patch(':orgId/:userId')
@@ -35,7 +39,7 @@ export class MembershipsController {
     @Param('orgId') orgId: string,
     @Param('userId') userId: string,
     @CurrentUser() user: User,
-    @Body() body: { role: string },
+    @Body(new ValidationPipe()) body: UpdateMembershipRoleDto,
   ): Promise<Membership> {
     return this.membershipsService.updateRole(orgId, userId, user.id, body.role);
   }
