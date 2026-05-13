@@ -23,7 +23,10 @@ export class MembershipsController {
     @CurrentUser() user: User,
     @Body(new ValidationPipe()) dto: CreateMembershipDto,
   ): Promise<Membership> {
-    return this.membershipsService.invite(orgId, user.id, dto);
+    // Create pending invitation
+    await this.membershipsService.invite(orgId, user.id, dto);
+    // Immediately accept to maintain current API behavior
+    return this.membershipsService.acceptInvitation(dto.userId, orgId);
   }
 
   @Get(':orgId')
