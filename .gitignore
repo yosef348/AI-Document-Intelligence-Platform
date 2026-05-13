@@ -10,3 +10,11 @@ build/
 .turbo/
 coverage/
 .DS_Store
+
+# IDE files (should not be versioned)
+.idea/
+.idea/workspace.xml
+.idea/material_theme_project_new.xml
+.vscode/
+frontend/.idea/
+backend/.idea/
