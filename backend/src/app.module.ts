@@ -7,6 +7,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { MembershipsModule } from './modules/memberships/memberships.module';
 
 @Module({
   imports: [
@@ -19,11 +20,11 @@ import { AuthModule } from './modules/auth/auth.module';
       load: [configuration],
     }),
     OrganizationsModule,
+    DatabaseModule,
+    AuthModule,
+    MembershipsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
-    DatabaseModule,
-    AuthModule,
-  ],
 })
 export class AppModule {}
