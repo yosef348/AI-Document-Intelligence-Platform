@@ -29,6 +29,7 @@ export class SupabaseAuthGuard implements CanActivate {
     const req = context.switchToHttp().getRequest<Request>();
     const authHeader =
       req.headers['authorization'] ?? req.headers['Authorization' as keyof typeof req.headers];
+    const authHeader = req.headers['authorization'] ?? req.headers['Authorization' as keyof typeof req.headers];
     const token = this.extractBearerToken(typeof authHeader === 'string' ? authHeader : Array.isArray(authHeader) ? authHeader[0] : undefined);
 
     if (!token) {
@@ -50,6 +51,13 @@ export class SupabaseAuthGuard implements CanActivate {
       // Treat unexpected/auth service failures as 503
       throw new ServiceUnavailableException('Authentication service unavailable');
     }
+    const { data, error } = await this.supabase.auth.getUser(token);
+    if (error || !data?.user) {
+      throw new UnauthorizedException('Invalid or expired token');
+    }
+
+    // Attach authenticated user to request
+    (req as unknown as { user?: User }).user = data.user;
     return true;
   }
 
