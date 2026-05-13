@@ -9,6 +9,7 @@ import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { MembershipsModule } from './modules/memberships/memberships.module';
 import { DocumentsModule } from './modules/documents/documents.module';
+import { IngestionModule } from './modules/ingestion/ingestion.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { DocumentsModule } from './modules/documents/documents.module';
     AuthModule,
     MembershipsModule,
     DocumentsModule,
+    IngestionModule,
   ],
   controllers: [AppController],
   providers: [AppService],
