@@ -16,7 +16,7 @@ export type Membership = {
   joinedAt: Date | null;
 };
 
-// Minimal column token objects to satisfy drizzle-orm eq/and/isNotNull expressions
+// Lightweight column token objects to satisfy drizzle-orm conditions
 export const organizations: { id: string } = { id: 'organizations.id' };
 export const memberships: {
   organizationId: string;

@@ -12,17 +12,20 @@ export class OrganizationsService {
 
   async create(userId: string, dto: CreateOrganizationDto): Promise<Organization> {
     try {
-      const [created] = await this.db.db
-        .insert(organizations)
-        .values({ ...dto, createdBy: userId, updatedBy: userId })
-        .returning();
+      const created = await this.db.db.transaction(async (tx) => {
+        const [org] = await tx
+          .insert(organizations)
+          .values({ ...dto, createdBy: userId, updatedBy: userId })
+          .returning();
 
-      // also create membership as owner
-      await this.db.db.insert(memberships).values({
-        organizationId: created.id,
-        userId,
-        role: 'owner',
-        joinedAt: new Date(),
+        await tx.insert(memberships).values({
+          organizationId: org.id,
+          userId,
+          role: 'owner',
+          joinedAt: new Date(),
+        });
+
+        return org as Organization;
       });
 
       return created;
@@ -97,15 +100,22 @@ export class OrganizationsService {
       throw new ForbiddenException('Insufficient role');
     }
 
-    const [updated] = await this.db.db
-      .update(organizations)
-      .set({ ...dto, updatedBy: userId, updatedAt: new Date() })
-      .where(eq(organizations.id, id))
-      .returning();
+    try {
+      const [updated] = await this.db.db
+        .update(organizations)
+        .set({ ...dto, updatedBy: userId, updatedAt: new Date() })
+        .where(eq(organizations.id, id))
+        .returning();
 
-    if (!updated) {
-      throw new NotFoundException('Organization not found');
+      if (!updated) {
+        throw new NotFoundException('Organization not found');
+      }
+      return updated as Organization;
+    } catch (err) {
+      if (typeof err === 'object' && err !== null && 'code' in err && (err as { code?: string }).code === '23505') {
+        throw new ConflictException('Slug already exists');
+      }
+      throw err as Error;
     }
-    return updated;
   }
 }
