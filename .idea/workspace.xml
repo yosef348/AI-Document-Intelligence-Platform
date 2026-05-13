@@ -6,7 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="5cea47e6-7c4c-4b6b-bff8-e55a8998067f" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/modules/memberships/dto/create-membership.dto.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/modules/memberships/dto/create-membership.dto.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/src/modules/memberships/memberships.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/modules/memberships/memberships.controller.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/src/modules/memberships/memberships.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/modules/memberships/memberships.service.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend" beforeDir="false" afterPath="$PROJECT_DIR$/frontend" afterDir="false" />
@@ -72,7 +71,7 @@
       <option name="presentableId" value="Default" />
       <updated>1778614878364</updated>
       <workItem from="1778614878955" duration="2061000" />
-      <workItem from="1778654590970" duration="13557000" />
+      <workItem from="1778654590970" duration="14286000" />
     </task>
     <servers />
   </component>
