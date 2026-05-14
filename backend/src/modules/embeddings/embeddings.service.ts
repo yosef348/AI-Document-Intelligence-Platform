@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { DatabaseService } from '../../database/database.service';
 import { chunks } from '../../database/schema/chunks';
 import { embeddings } from '../../database/schema/embeddings';
+import { documents } from '../../database/schema/documents';
 import type { Chunk } from '../../database/schema/chunks';
 import type { NewEmbedding } from '../../database/schema/embeddings';
 import { eq, isNull, and } from 'drizzle-orm';
@@ -19,7 +20,7 @@ export class EmbeddingsService {
     private readonly configService: ConfigService<Config, true>,
   ) {
     const apiKey = this.configService.get('openai.apiKey', { infer: true });
-    this.openai = new OpenAI({ apiKey });
+    this.openai = new OpenAI({ apiKey, maxRetries: 2 });
   }
 
   async generateForDocument(
@@ -48,14 +49,16 @@ export class EmbeddingsService {
         return;
       }
 
-      // Filter out chunks that already have active embeddings
-      const chunksWithoutEmbeddings: Chunk[] = [];
-      for (const chunk of documentChunks) {
-        const hasEmbedding = await this.hasActiveEmbedding(chunk.id);
-        if (!hasEmbedding) {
-          chunksWithoutEmbeddings.push(chunk);
-        }
-      }
+      // Filter out chunks that already have active embeddings (batched query, not N+1)
+      const existingEmbeddingChunkIds = await this.db.db
+        .selectDistinct({ chunkId: embeddings.chunkId })
+        .from(embeddings)
+        .where(and(eq(embeddings.isActive, true), isNull(embeddings.deletedAt)))
+        .then((rows) => new Set(rows.map((r) => r.chunkId)));
+
+      const chunksWithoutEmbeddings = documentChunks.filter(
+        (chunk) => !existingEmbeddingChunkIds.has(chunk.id),
+      );
 
       if (chunksWithoutEmbeddings.length === 0) {
         this.logger.log(
@@ -67,18 +70,46 @@ export class EmbeddingsService {
 
       // Generate embeddings in batches of 20
       const batchSize = 20;
+
       for (let i = 0; i < chunksWithoutEmbeddings.length; i += batchSize) {
         const batch = chunksWithoutEmbeddings.slice(i, i + batchSize);
 
-        // Generate embeddings for this batch
-        const newEmbeddings = await this.generateEmbeddings(batch);
+        try {
+          // Generate embeddings for this batch
+          const newEmbeddings = await this.generateEmbeddings(batch);
 
-        // Save embeddings to DB
-        await this.saveEmbeddings(newEmbeddings);
+          // Save embeddings to DB
+          await this.saveEmbeddings(newEmbeddings);
 
-        // Rate limiting: 100ms delay between batches
-        if (i + batchSize < chunksWithoutEmbeddings.length) {
-          await new Promise((resolve) => setTimeout(resolve, 100));
+          // Rate limiting: 100ms delay between batches
+          if (i + batchSize < chunksWithoutEmbeddings.length) {
+            await new Promise((resolve) => setTimeout(resolve, 100));
+          }
+        } catch (batchError: unknown) {
+          // Check if error is transient (retryable)
+          const isTransientError =
+            (batchError instanceof Error &&
+              (batchError.message.includes('429') ||
+                batchError.message.includes('5') ||
+                batchError.message.includes('timeout') ||
+                batchError.message.includes('ECONNREFUSED'))) ||
+            (typeof batchError === 'object' &&
+              batchError !== null &&
+              'status' in batchError &&
+              ((batchError as { status: number }).status === 429 ||
+                (batchError as { status: number }).status >= 500));
+
+          if (isTransientError) {
+            // Log transient error but allow resumption
+            this.logger.warn(
+              `Transient error in batch for document ${documentId}, will retry on next run`,
+              batchError,
+            );
+            break; // Exit loop to allow resumption later
+          } else {
+            // Non-transient error, rethrow for document failure
+            throw batchError;
+          }
         }
       }
 
@@ -104,21 +135,30 @@ export class EmbeddingsService {
     }
   }
 
-  private async generateEmbeddings(chunks: Chunk[]): Promise<NewEmbedding[]> {
+  private async generateEmbeddings(
+    inputChunks: Chunk[],
+  ): Promise<NewEmbedding[]> {
     const startTime = Date.now();
 
     const response = await this.openai.embeddings.create({
       model: 'text-embedding-3-small',
-      input: chunks.map((c) => c.chunkText),
+      input: inputChunks.map((c) => c.chunkText),
     });
+
+    // Validate response has correct number of embeddings
+    if (!response.data || response.data.length !== inputChunks.length) {
+      throw new Error(
+        `OpenAI embedding response mismatch: expected ${inputChunks.length} embeddings, got ${response.data?.length ?? 0}`,
+      );
+    }
 
     const latency = Date.now() - startTime;
 
-    return chunks.map((chunk, index) => ({
+    return inputChunks.map((chunk, index) => ({
       organizationId: chunk.organizationId,
       chunkId: chunk.id,
       model: 'text-embedding-3-small',
-      modelVersion: 'latest',
+      modelVersion: response.model,
       provider: 'openai',
       dimensions: 1536,
       embedding: response.data[index].embedding,
@@ -137,28 +177,10 @@ export class EmbeddingsService {
     }
   }
 
-  private async hasActiveEmbedding(chunkId: string): Promise<boolean> {
-    const [existing] = await this.db.db
-      .select()
-      .from(embeddings)
-      .where(
-        and(
-          eq(embeddings.chunkId, chunkId),
-          eq(embeddings.isActive, true),
-          isNull(embeddings.deletedAt),
-        ),
-      );
-
-    return !!existing;
-  }
-
   private async updateDocumentProcessingStatus(
     documentId: string,
-    status: string,
+    status: 'processing' | 'completed' | 'failed',
   ): Promise<void> {
-    // Import documents here to avoid circular dependency
-    const { documents } = await import('../../database/schema/documents.js');
-
     await this.db.db
       .update(documents)
       .set({

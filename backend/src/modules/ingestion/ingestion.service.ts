@@ -9,7 +9,7 @@ import { eq } from 'drizzle-orm';
 import { getStorageClient } from '../../common/helpers/supabase-storage.helper';
 import type { Config } from '../../config/configuration';
 import * as mammoth from 'mammoth';
-import { EmbeddingsService } from '../embeddings/embeddings.service.js';
+import { EmbeddingsService } from '../embeddings/embeddings.service';
 
 const pdfParse = require('pdf-parse');
 

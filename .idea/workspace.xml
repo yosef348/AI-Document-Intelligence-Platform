@@ -6,25 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="5cea47e6-7c4c-4b6b-bff8-e55a8998067f" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/app.module.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/app.module.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/common/decorators/current-user.decorator.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/common/decorators/current-user.decorator.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/common/decorators/organization-id.decorator.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/common/decorators/organization-id.decorator.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/common/filters/http-exception.filter.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/common/filters/http-exception.filter.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/common/guards/supabase-auth.guard.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/common/guards/supabase-auth.guard.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/common/helpers/supabase-storage.helper.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/common/helpers/supabase-storage.helper.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/config/configuration.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/config/configuration.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/database/schema.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/database/schema.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/modules/auth/auth.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/modules/auth/auth.controller.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/modules/auth/auth.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/modules/auth/auth.service.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/modules/documents/documents.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/modules/documents/documents.controller.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/modules/documents/documents.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/modules/documents/documents.service.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/modules/documents/documents.spec.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/modules/documents/documents.spec.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/modules/ingestion/ingestion.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/modules/ingestion/ingestion.service.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/modules/memberships/dto/create-membership.dto.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/modules/memberships/dto/create-membership.dto.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/modules/memberships/memberships.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/modules/memberships/memberships.controller.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/modules/memberships/memberships.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/modules/memberships/memberships.service.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/modules/organizations/dto/create-organization.dto.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/modules/organizations/dto/create-organization.dto.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/modules/organizations/organizations.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/modules/organizations/organizations.service.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend" beforeDir="false" afterPath="$PROJECT_DIR$/frontend" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/app/globals.css" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/app/globals.css" afterDir="false" />
@@ -96,7 +77,7 @@
       <workItem from="1778684002021" duration="997000" />
       <workItem from="1778685077577" duration="1497000" />
       <workItem from="1778693162678" duration="3139000" />
-      <workItem from="1778762446572" duration="1402000" />
+      <workItem from="1778762446572" duration="2540000" />
     </task>
     <servers />
   </component>
