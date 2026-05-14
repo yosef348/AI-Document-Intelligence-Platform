@@ -1,3 +1,9 @@
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { and, eq, isNotNull } from 'drizzle-orm';
 import { DatabaseService } from '../../database/database.service';
@@ -10,6 +16,10 @@ import { UpdateOrganizationDto } from './dto/update-organization.dto';
 export class OrganizationsService {
   constructor(private readonly db: DatabaseService) {}
 
+  async create(
+    userId: string,
+    dto: CreateOrganizationDto,
+  ): Promise<Organization> {
   async create(userId: string, dto: CreateOrganizationDto): Promise<Organization> {
     try {
       const created = await this.db.db.transaction(async (tx) => {
@@ -25,12 +35,22 @@ export class OrganizationsService {
           joinedAt: new Date(),
         });
 
+        return org;
         return org as Organization;
       });
 
       return created;
     } catch (err) {
       // Postgres unique violation
+      if (
+        typeof err === 'object' &&
+        err !== null &&
+        'code' in err &&
+        (err as { code?: string }).code === '23505'
+      ) {
+        throw new ConflictException(
+          'Organization with this slug already exists',
+        );
       if (typeof err === 'object' && err !== null && 'code' in err && (err as { code?: string }).code === '23505') {
         throw new ConflictException('Organization with this slug already exists');
       }
@@ -50,6 +70,9 @@ export class OrganizationsService {
           isNotNull(memberships.joinedAt),
         ),
       );
+    return (result as Array<{ organization: Organization }>).map(
+      (r: { organization: Organization }) => r.organization,
+    );
     return (result as Array<{ organization: Organization }>).map((r: { organization: Organization }) => r.organization);
   }
 
@@ -75,6 +98,10 @@ export class OrganizationsService {
     return org;
   }
 
+  async getMembership(
+    organizationId: string,
+    userId: string,
+  ): Promise<Membership> {
   async getMembership(organizationId: string, userId: string): Promise<Membership> {
     const [member] = await this.db.db
       .select()
@@ -90,6 +117,14 @@ export class OrganizationsService {
     if (!member) {
       throw new NotFoundException('Membership not found');
     }
+    return member;
+  }
+
+  async update(
+    id: string,
+    userId: string,
+    dto: UpdateOrganizationDto,
+  ): Promise<Organization> {
     return member as Membership;
   }
 
@@ -110,6 +145,14 @@ export class OrganizationsService {
       if (!updated) {
         throw new NotFoundException('Organization not found');
       }
+      return updated;
+    } catch (err) {
+      if (
+        typeof err === 'object' &&
+        err !== null &&
+        'code' in err &&
+        (err as { code?: string }).code === '23505'
+      ) {
       return updated as Organization;
     } catch (err) {
       if (typeof err === 'object' && err !== null && 'code' in err && (err as { code?: string }).code === '23505') {

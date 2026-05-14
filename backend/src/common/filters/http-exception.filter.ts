@@ -20,8 +20,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
       typeof res === 'string'
         ? res
         : typeof res === 'object' && res !== null && 'message' in res
-        ? (res as { message: string | string[] }).message
-        : exception.message;
+          ? (res as { message: string | string[] }).message
+          : exception.message;
 
     const error =
       typeof res === 'object' && res !== null && 'error' in res

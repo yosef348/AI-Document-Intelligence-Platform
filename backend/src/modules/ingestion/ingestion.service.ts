@@ -9,6 +9,8 @@ import { eq } from 'drizzle-orm';
 import { getStorageClient } from '../../common/helpers/supabase-storage.helper';
 import type { Config } from '../../config/configuration';
 import * as mammoth from 'mammoth';
+import { EmbeddingsService } from '../embeddings/embeddings.service';
+
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const pdfParse = require('pdf-parse');
@@ -20,6 +22,13 @@ export class IngestionService {
   constructor(
     private readonly db: DatabaseService,
     private readonly configService: ConfigService<Config, true>,
+    private readonly embeddingsService: EmbeddingsService, // Inject EmbeddingsService
+  ) {}
+
+  async processDocument(
+    documentId: string,
+    organizationId: string,
+  ): Promise<void> {
   ) {}
 
   async processDocument(documentId: string, organizationId: string): Promise<void> {
@@ -41,11 +50,20 @@ export class IngestionService {
       if (document.organizationId !== organizationId) {
         throw new Error(
           `Organization mismatch: document belongs to ${document.organizationId}, ` +
+            `not ${organizationId}`,
           `not ${organizationId}`,
         );
       }
 
       // Step 3: Extract text
+      const text = await this.extractText(document);
+
+      // Step 4: Split into chunks (use document's organizationId)
+      const textChunks = this.chunkText(
+        text,
+        documentId,
+        document.organizationId,
+      );
       const text = await this.extractText(document as Document);
 
       // Step 4: Split into chunks (use document's organizationId)
@@ -54,6 +72,25 @@ export class IngestionService {
       // Step 5: Save chunks atomically
       await this.saveChunks(documentId, textChunks);
 
+      // Step 6: Trigger embedding generation (fire-and-forget)
+      void this.embeddingsService
+        .generateForDocument(documentId, document.organizationId)
+        .catch((err: unknown) =>
+          this.logger.error('Embedding generation failed for document', {
+            documentId,
+            err,
+          }),
+        );
+
+      // Step 7: Update parsing status to parsed
+      await this.updateDocumentParsingStatus(documentId, 'parsed');
+
+      // Step 8: Update processing status to indexing
+      await this.updateDocumentProcessingStatus(documentId, 'indexing');
+
+      this.logger.log(
+        `Document ${documentId} ingestion completed successfully`,
+      );
       // Step 6: Update parsing status to parsed
       await this.updateDocumentParsingStatus(documentId, 'parsed');
 
@@ -68,6 +105,10 @@ export class IngestionService {
         await this.updateDocumentParsingStatus(documentId, 'failed');
         await this.updateDocumentProcessingStatus(documentId, 'failed');
       } catch (statusError) {
+        this.logger.error(
+          `Failed to update document status for ${documentId}`,
+          statusError,
+        );
         this.logger.error(`Failed to update document status for ${documentId}`, statusError);
       }
       // Rethrow the original error after status updates
@@ -79,6 +120,15 @@ export class IngestionService {
     const storageClient = getStorageClient(this.configService);
 
     // Create signed URL to download file
+    const { data: signedUrlData, error: signedUrlError } =
+      await storageClient.storage
+        .from('documents')
+        .createSignedUrl(document.storagePath, 3600);
+
+    if (signedUrlError || !signedUrlData) {
+      throw new Error(
+        `Failed to create signed URL for document: ${signedUrlError?.message}`,
+      );
     const { data: signedUrlData, error: signedUrlError } = await storageClient.storage
       .from('documents')
       .createSignedUrl(document.storagePath, 3600);
@@ -107,6 +157,11 @@ export class IngestionService {
     }
   }
 
+  private chunkText(
+    text: string,
+    documentId: string,
+    organizationId: string,
+  ): NewChunk[] {
   private chunkText(text: string, documentId: string, organizationId: string): NewChunk[] {
     // Normalize text and filter empty strings
     const normalizedText = text.trim();
@@ -165,6 +220,10 @@ export class IngestionService {
     return chunks;
   }
 
+  private async saveChunks(
+    documentId: string,
+    chunkList: NewChunk[],
+  ): Promise<void> {
   private async saveChunks(documentId: string, chunkList: NewChunk[]): Promise<void> {
     // If no chunks to save, return early
     if (chunkList.length === 0) {
@@ -183,6 +242,10 @@ export class IngestionService {
     });
   }
 
+  private async updateDocumentParsingStatus(
+    id: string,
+    status: string,
+  ): Promise<void> {
   private async updateDocumentParsingStatus(id: string, status: string): Promise<void> {
     await this.db.db
       .update(documents)
@@ -193,6 +256,10 @@ export class IngestionService {
       .where(eq(documents.id, id));
   }
 
+  private async updateDocumentProcessingStatus(
+    id: string,
+    status: string,
+  ): Promise<void> {
   private async updateDocumentProcessingStatus(id: string, status: string): Promise<void> {
     await this.db.db
       .update(documents)

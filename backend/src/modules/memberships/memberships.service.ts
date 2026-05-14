@@ -1,14 +1,29 @@
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { and, eq, isNotNull, isNull } from 'drizzle-orm';
 import { DatabaseService } from '../../database/database.service';
 import { memberships } from '../../database/schema/memberships';
 import type { Membership } from '../../database/schema';
+import {
+  CreateMembershipDto,
+  ALLOWED_ROLES,
+} from './dto/create-membership.dto';
 import { CreateMembershipDto, ALLOWED_ROLES } from './dto/create-membership.dto';
 
 @Injectable()
 export class MembershipsService {
   constructor(private readonly db: DatabaseService) {}
 
+  private async ensureOwnerOrAdmin(
+    userId: string,
+    organizationId: string,
+  ): Promise<Membership> {
   private async ensureOwnerOrAdmin(userId: string, organizationId: string): Promise<Membership> {
     const [membership] = await this.db.db
       .select()
@@ -21,6 +36,21 @@ export class MembershipsService {
         ),
       );
 
+    if (
+      !membership ||
+      !['owner', 'admin'].includes((membership as Membership).role)
+    ) {
+      throw new ForbiddenException('Insufficient role');
+    }
+
+    return membership;
+  }
+
+  async invite(
+    organizationId: string,
+    invitedBy: string,
+    dto: CreateMembershipDto,
+  ): Promise<Membership> {
     if (!membership || !['owner', 'admin'].includes((membership as Membership).role)) {
       throw new ForbiddenException('Insufficient role');
     }
@@ -44,6 +74,9 @@ export class MembershipsService {
       );
 
     if (existing) {
+      throw new ConflictException(
+        'User is already a member of this organization',
+      );
       throw new ConflictException('User is already a member of this organization');
     }
 
@@ -59,6 +92,13 @@ export class MembershipsService {
       })
       .returning();
 
+    return created;
+  }
+
+  async acceptInvitation(
+    userId: string,
+    organizationId: string,
+  ): Promise<Membership> {
     return created as Membership;
   }
 
@@ -80,6 +120,13 @@ export class MembershipsService {
       throw new NotFoundException('Pending invitation not found');
     }
 
+    return updated;
+  }
+
+  async listByOrganization(
+    organizationId: string,
+    requesterId: string,
+  ): Promise<Membership[]> {
     return updated as Membership;
   }
 
@@ -97,6 +144,7 @@ export class MembershipsService {
         ),
       );
 
+    return result;
     return result as Membership[];
   }
 
@@ -105,6 +153,23 @@ export class MembershipsService {
       .select()
       .from(memberships)
       .where(
+        and(eq(memberships.userId, userId), isNotNull(memberships.joinedAt)),
+      );
+
+    return result;
+  }
+
+  async updateRole(
+    organizationId: string,
+    userId: string,
+    updatedBy: string,
+    role: string,
+  ): Promise<Membership> {
+    // Validate role
+    if (!ALLOWED_ROLES.includes(role as any)) {
+      throw new BadRequestException(
+        `Invalid role. Must be one of: ${ALLOWED_ROLES.join(', ')}`,
+      );
         and(
           eq(memberships.userId, userId),
           isNotNull(memberships.joinedAt),
@@ -147,6 +212,10 @@ export class MembershipsService {
       }
 
       // Protect last owner: if target is owner and new role is not owner, check owner count
+      if (
+        (targetMembership as Membership).role === 'owner' &&
+        role !== 'owner'
+      ) {
       if ((targetMembership as Membership).role === 'owner' && role !== 'owner') {
         const ownerRows = await tx
           .select()
@@ -160,6 +229,9 @@ export class MembershipsService {
           );
 
         if (ownerRows.length === 1) {
+          throw new ForbiddenException(
+            'Cannot remove the last owner of the organization',
+          );
           throw new ForbiddenException('Cannot remove the last owner of the organization');
         }
       }
@@ -181,6 +253,7 @@ export class MembershipsService {
         throw new NotFoundException('Membership not found');
       }
 
+      return updated;
       return updated as Membership;
     });
   }

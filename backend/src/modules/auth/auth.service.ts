@@ -12,7 +12,9 @@ export class AuthService {
     private readonly config: ConfigService<Config, true>,
   ) {}
 
-  async getProfile(userId: string): Promise<typeof profiles.$inferSelect | null> {
+  async getProfile(
+    userId: string,
+  ): Promise<typeof profiles.$inferSelect | null> {
     const db = this.dbService.db;
     const [profile] = await db
       .select()

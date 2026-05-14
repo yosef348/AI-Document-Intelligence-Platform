@@ -10,6 +10,8 @@ import { AuthModule } from './modules/auth/auth.module';
 import { MembershipsModule } from './modules/memberships/memberships.module';
 import { DocumentsModule } from './modules/documents/documents.module';
 import { IngestionModule } from './modules/ingestion/ingestion.module';
+import { EmbeddingsModule } from './modules/embeddings/embeddings.module';
+import { AgentModule } from './modules/agent/agent.module';
 
 @Module({
   imports: [
@@ -27,6 +29,8 @@ import { IngestionModule } from './modules/ingestion/ingestion.module';
     MembershipsModule,
     DocumentsModule,
     IngestionModule,
+    EmbeddingsModule,
+    AgentModule,
   ],
   controllers: [AppController],
   providers: [AppService],
