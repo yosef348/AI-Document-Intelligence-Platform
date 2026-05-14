@@ -12,6 +12,9 @@ export async function retrieveNode(
 ): Promise<Partial<AgentStateType>> {
   logger.log(`Starting retrieve node for document ${state.documentId}`);
 
+  // MVP: fetch up to 50 chunks per document; log warning if truncated
+  const maxChunks = 50;
+
   const chunkRows = await db.db
     .select({
       chunkId: chunks.id,
@@ -27,9 +30,18 @@ export async function retrieveNode(
       ),
     )
     .orderBy(asc(chunks.chunkIndex))
-    .limit(50);
+    .limit(maxChunks + 1); // Fetch one extra to detect truncation
 
-  const retrievedChunks = chunkRows.map((chunk) => ({
+  const wasTruncated = chunkRows.length > maxChunks;
+  const retrievedChunkRows = chunkRows.slice(0, maxChunks);
+
+  if (wasTruncated) {
+    logger.warn(
+      `Document ${state.documentId} has more than ${maxChunks} chunks; analysis limited to first ${maxChunks} chunks`,
+    );
+  }
+
+  const retrievedChunks = retrievedChunkRows.map((chunk) => ({
     chunkId: chunk.chunkId,
     chunkText: chunk.chunkText,
     pageNumber: chunk.pageNumber,

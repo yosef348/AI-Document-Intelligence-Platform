@@ -6,7 +6,7 @@ import { embeddings } from '../../database/schema/embeddings';
 import { documents } from '../../database/schema/documents';
 import type { Chunk } from '../../database/schema/chunks';
 import type { NewEmbedding } from '../../database/schema/embeddings';
-import { eq, isNull, and } from 'drizzle-orm';
+import { eq, isNull, and, inArray } from 'drizzle-orm';
 import OpenAI from 'openai';
 import type { Config } from '../../config/configuration';
 import { AgentService } from '../agent/agent.service';
@@ -57,10 +57,18 @@ export class EmbeddingsService {
       }
 
       // Filter out chunks that already have active embeddings (batched query, not N+1)
+      // Only query embeddings for chunks in this document to avoid global table scan
+      const chunkIds = documentChunks.map((c) => c.id);
       const existingEmbeddingChunkIds = await this.db.db
         .selectDistinct({ chunkId: embeddings.chunkId })
         .from(embeddings)
-        .where(and(eq(embeddings.isActive, true), isNull(embeddings.deletedAt)))
+        .where(
+          and(
+            eq(embeddings.isActive, true),
+            isNull(embeddings.deletedAt),
+            inArray(embeddings.chunkId, chunkIds),
+          ),
+        )
         .then((rows) => new Set(rows.map((r) => r.chunkId)));
 
       const chunksWithoutEmbeddings = documentChunks.filter(
@@ -95,10 +103,11 @@ export class EmbeddingsService {
           }
         } catch (batchError: unknown) {
           // Check if error is transient (retryable)
+          // Precise 5xx detection: use regex to avoid false positives from .includes('5')
           const isTransientError =
             (batchError instanceof Error &&
               (batchError.message.includes('429') ||
-                batchError.message.includes('5') ||
+                /\b5\d{2}\b/.test(batchError.message) ||
                 batchError.message.includes('timeout') ||
                 batchError.message.includes('ECONNREFUSED'))) ||
             (typeof batchError === 'object' &&

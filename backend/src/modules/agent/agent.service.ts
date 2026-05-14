@@ -37,6 +37,7 @@ export class AgentService {
     };
 
     let aiRunId: string | null = null;
+    let runtimeState: AgentStateType = initialState;
 
     this.logger.log(
       `Starting agent analysis for document ${documentId} in organization ${organizationId}`,
@@ -65,6 +66,7 @@ export class AgentService {
       aiRunId = createdRun.id;
       const graph = buildAgentGraph(this.db, openaiApiKey, aiRunId);
       const finalState = await graph.invoke(initialState);
+      runtimeState = finalState;
 
       await this.db.db
         .update(aiRuns)
@@ -96,6 +98,7 @@ export class AgentService {
 
       if (aiRunId) {
         try {
+          // Persist runtime state to preserve partial progress before error
           await this.db.db
             .update(aiRuns)
             .set({
@@ -103,7 +106,7 @@ export class AgentService {
               completedAt: new Date(),
               latencyMs: Date.now() - startedAt.getTime(),
               currentNode: 'failed',
-              graphState: initialState,
+              graphState: runtimeState,
               error: errorMessage,
             })
             .where(eq(aiRuns.id, aiRunId));
