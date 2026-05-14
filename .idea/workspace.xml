@@ -5,10 +5,6 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="5cea47e6-7c4c-4b6b-bff8-e55a8998067f" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/modules/agent/agent.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/modules/agent/agent.service.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/modules/agent/graph/nodes/retrieve.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/modules/agent/graph/nodes/retrieve.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/src/modules/embeddings/embeddings.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/modules/embeddings/embeddings.service.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend" beforeDir="false" afterPath="$PROJECT_DIR$/frontend" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/app/globals.css" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/app/globals.css" afterDir="false" />
@@ -83,7 +79,7 @@
       <workItem from="1778693162678" duration="3139000" />
       <workItem from="1778762446572" duration="5721000" />
       <workItem from="1778772699793" duration="292000" />
-      <workItem from="1778781191708" duration="4559000" />
+      <workItem from="1778781191708" duration="4901000" />
     </task>
     <servers />
   </component>
