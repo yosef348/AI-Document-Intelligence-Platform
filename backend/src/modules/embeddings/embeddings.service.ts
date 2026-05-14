@@ -9,6 +9,7 @@ import type { NewEmbedding } from '../../database/schema/embeddings';
 import { eq, isNull, and } from 'drizzle-orm';
 import OpenAI from 'openai';
 import type { Config } from '../../config/configuration';
+import { AgentService } from '../agent/agent.service';
 
 @Injectable()
 export class EmbeddingsService {
@@ -18,6 +19,7 @@ export class EmbeddingsService {
   constructor(
     private readonly db: DatabaseService,
     private readonly configService: ConfigService<Config, true>,
+    private readonly agentService: AgentService,
   ) {
     const apiKey = this.configService.get('openai.apiKey', { infer: true });
     this.openai = new OpenAI({ apiKey, maxRetries: 2 });
@@ -30,6 +32,10 @@ export class EmbeddingsService {
     try {
       // Update document processing status to 'processing'
       await this.updateDocumentProcessingStatus(documentId, 'processing');
+      const documentType = await this.getDocumentType(
+        documentId,
+        organizationId,
+      );
 
       // Fetch all chunks for documentId where deletedAt is null
       const documentChunks = await this.db.db
@@ -46,6 +52,7 @@ export class EmbeddingsService {
       if (documentChunks.length === 0) {
         this.logger.warn(`No chunks found for document ${documentId}`);
         await this.updateDocumentProcessingStatus(documentId, 'completed');
+        this.triggerAgentAnalysis(documentId, organizationId, documentType);
         return;
       }
 
@@ -65,6 +72,7 @@ export class EmbeddingsService {
           `All chunks for document ${documentId} already have embeddings`,
         );
         await this.updateDocumentProcessingStatus(documentId, 'completed');
+        this.triggerAgentAnalysis(documentId, organizationId, documentType);
         return;
       }
 
@@ -115,6 +123,7 @@ export class EmbeddingsService {
 
       // Update document processing status to 'completed'
       await this.updateDocumentProcessingStatus(documentId, 'completed');
+      this.triggerAgentAnalysis(documentId, organizationId, documentType);
 
       this.logger.log(`Embeddings generated for document ${documentId}`);
     } catch (error) {
@@ -188,5 +197,45 @@ export class EmbeddingsService {
         updatedAt: new Date(),
       })
       .where(eq(documents.id, documentId));
+  }
+
+  private async getDocumentType(
+    documentId: string,
+    organizationId: string,
+  ): Promise<string> {
+    const [document] = await this.db.db
+      .select({ type: documents.type })
+      .from(documents)
+      .where(
+        and(
+          eq(documents.id, documentId),
+          eq(documents.organizationId, organizationId),
+          isNull(documents.deletedAt),
+        ),
+      );
+
+    if (!document) {
+      throw new Error(
+        `Document ${documentId} not found for organization ${organizationId}`,
+      );
+    }
+
+    return document.type;
+  }
+
+  private triggerAgentAnalysis(
+    documentId: string,
+    organizationId: string,
+    documentType: string,
+  ): void {
+    void this.agentService
+      .analyzeDocument(documentId, organizationId, documentType)
+      .catch((error: unknown) => {
+        const errorTrace = error instanceof Error ? error.stack : undefined;
+        this.logger.error(
+          `Agent analysis failed for document ${documentId}`,
+          errorTrace,
+        );
+      });
   }
 }
