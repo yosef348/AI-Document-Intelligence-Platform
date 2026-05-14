@@ -1,4 +1,9 @@
-import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { and, eq, isNotNull } from 'drizzle-orm';
 import { DatabaseService } from '../../database/database.service';
 import { memberships, organizations } from '../../database/schema';
@@ -10,7 +15,10 @@ import { UpdateOrganizationDto } from './dto/update-organization.dto';
 export class OrganizationsService {
   constructor(private readonly db: DatabaseService) {}
 
-  async create(userId: string, dto: CreateOrganizationDto): Promise<Organization> {
+  async create(
+    userId: string,
+    dto: CreateOrganizationDto,
+  ): Promise<Organization> {
     try {
       const created = await this.db.db.transaction(async (tx) => {
         const [org] = await tx
@@ -25,14 +33,21 @@ export class OrganizationsService {
           joinedAt: new Date(),
         });
 
-        return org as Organization;
+        return org;
       });
 
       return created;
     } catch (err) {
       // Postgres unique violation
-      if (typeof err === 'object' && err !== null && 'code' in err && (err as { code?: string }).code === '23505') {
-        throw new ConflictException('Organization with this slug already exists');
+      if (
+        typeof err === 'object' &&
+        err !== null &&
+        'code' in err &&
+        (err as { code?: string }).code === '23505'
+      ) {
+        throw new ConflictException(
+          'Organization with this slug already exists',
+        );
       }
       throw err as Error;
     }
@@ -50,7 +65,9 @@ export class OrganizationsService {
           isNotNull(memberships.joinedAt),
         ),
       );
-    return (result as Array<{ organization: Organization }>).map((r: { organization: Organization }) => r.organization);
+    return (result as Array<{ organization: Organization }>).map(
+      (r: { organization: Organization }) => r.organization,
+    );
   }
 
   async findById(id: string, userId: string): Promise<Organization> {
@@ -75,7 +92,10 @@ export class OrganizationsService {
     return org;
   }
 
-  async getMembership(organizationId: string, userId: string): Promise<Membership> {
+  async getMembership(
+    organizationId: string,
+    userId: string,
+  ): Promise<Membership> {
     const [member] = await this.db.db
       .select()
       .from(memberships)
@@ -90,10 +110,14 @@ export class OrganizationsService {
     if (!member) {
       throw new NotFoundException('Membership not found');
     }
-    return member as Membership;
+    return member;
   }
 
-  async update(id: string, userId: string, dto: UpdateOrganizationDto): Promise<Organization> {
+  async update(
+    id: string,
+    userId: string,
+    dto: UpdateOrganizationDto,
+  ): Promise<Organization> {
     // verify role owner or admin
     const membership = await this.getMembership(id, userId);
     if (!['owner', 'admin'].includes(membership.role)) {
@@ -110,9 +134,14 @@ export class OrganizationsService {
       if (!updated) {
         throw new NotFoundException('Organization not found');
       }
-      return updated as Organization;
+      return updated;
     } catch (err) {
-      if (typeof err === 'object' && err !== null && 'code' in err && (err as { code?: string }).code === '23505') {
+      if (
+        typeof err === 'object' &&
+        err !== null &&
+        'code' in err &&
+        (err as { code?: string }).code === '23505'
+      ) {
         throw new ConflictException('Slug already exists');
       }
       throw err as Error;

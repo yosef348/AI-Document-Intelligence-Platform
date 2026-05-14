@@ -1,4 +1,18 @@
-import { BadRequestException, Body, Controller, Delete, Get, HttpCode, HttpStatus, Logger, Param, Post, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Logger,
+  Param,
+  Post,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
@@ -20,8 +34,13 @@ export class DocumentsController {
     private readonly ingestionService: IngestionService,
   ) {}
 
-  private mapDocumentWithSignedUrl(document: Document, signedUrl: string): Document & { signedUrl: string } {
-    const { storagePath: _omit, ...rest } = document as Document & { storagePath?: string };
+  private mapDocumentWithSignedUrl(
+    document: Document,
+    signedUrl: string,
+  ): Document & { signedUrl: string } {
+    const { storagePath: _omit, ...rest } = document as Document & {
+      storagePath?: string;
+    };
     return { ...rest, signedUrl } as Document & { signedUrl: string };
   }
 
@@ -55,28 +74,42 @@ export class DocumentsController {
       }
     }
     if (!isValidContent) {
-      throw new BadRequestException('Invalid file content. Only PDF and DOCX files are allowed');
+      throw new BadRequestException(
+        'Invalid file content. Only PDF and DOCX files are allowed',
+      );
     }
 
     const document = await this.documentsService.upload(user.id, dto, file);
 
     // Trigger ingestion (fire-and-forget)
-    void this.ingestionService.processDocument(document.id, dto.organizationId).catch(err =>
-      this.logger.error('Ingestion failed for document', { documentId: document.id, err }));
+    void this.ingestionService
+      .processDocument(document.id, dto.organizationId)
+      .catch((err) =>
+        this.logger.error('Ingestion failed for document', {
+          documentId: document.id,
+          err,
+        }),
+      );
 
     // Replace storagePath with signedUrl and never return storagePath
-    const signedUrl = await this.documentsService.getSignedUrl(document.storagePath);
+    const signedUrl = await this.documentsService.getSignedUrl(
+      document.storagePath,
+    );
     return this.mapDocumentWithSignedUrl(document, signedUrl);
   }
 
   @Get()
-  async findAll(@OrganizationId() organizationId: string): Promise<(Document & { signedUrl: string })[]> {
+  async findAll(
+    @OrganizationId() organizationId: string,
+  ): Promise<(Document & { signedUrl: string })[]> {
     const documents = await this.documentsService.findAll(organizationId);
 
     // Add signed URLs
     const documentsWithUrls = await Promise.all(
       documents.map(async (doc) => {
-        const signedUrl = await this.documentsService.getSignedUrl(doc.storagePath);
+        const signedUrl = await this.documentsService.getSignedUrl(
+          doc.storagePath,
+        );
         return this.mapDocumentWithSignedUrl(doc, signedUrl);
       }),
     );
@@ -90,7 +123,9 @@ export class DocumentsController {
     @OrganizationId() organizationId: string,
   ): Promise<Document & { signedUrl: string }> {
     const document = await this.documentsService.findById(id, organizationId);
-    const signedUrl = await this.documentsService.getSignedUrl(document.storagePath);
+    const signedUrl = await this.documentsService.getSignedUrl(
+      document.storagePath,
+    );
     return this.mapDocumentWithSignedUrl(document, signedUrl);
   }
 

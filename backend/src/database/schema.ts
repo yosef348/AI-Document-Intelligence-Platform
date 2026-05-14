@@ -1,4 +1,10 @@
-import { pgTable, primaryKey, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  primaryKey,
+  timestamp,
+  uuid,
+  varchar,
+} from 'drizzle-orm/pg-core';
 
 // Drizzle table definitions for organizations and memberships
 // Exporting actual table/column objects so callers can use eq(), isNotNull(), etc.
@@ -9,8 +15,12 @@ export const organizations = pgTable('organizations', {
   name: varchar('name', { length: 256 }).notNull(),
   createdBy: varchar('created_by', { length: 64 }).notNull(),
   updatedBy: varchar('updated_by', { length: 64 }).notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 export const memberships = pgTable(
@@ -22,7 +32,10 @@ export const memberships = pgTable(
     joinedAt: timestamp('joined_at', { withTimezone: true }),
   },
   (t) => ({
-    pk: primaryKey({ columns: [t.organizationId, t.userId], name: 'memberships_pk' }),
+    pk: primaryKey({
+      columns: [t.organizationId, t.userId],
+      name: 'memberships_pk',
+    }),
   }),
 );
 

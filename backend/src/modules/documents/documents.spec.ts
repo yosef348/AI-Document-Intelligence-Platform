@@ -248,9 +248,7 @@ describe('DocumentsModule Integration Tests', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .set('x-organization-id', organizationId);
 
-      const deletedDoc = response.body.find(
-        (doc) => doc.id === documentId,
-      );
+      const deletedDoc = response.body.find((doc) => doc.id === documentId);
       expect(deletedDoc).toBeUndefined();
     });
 
@@ -303,9 +301,7 @@ describe('DocumentsModule Integration Tests', () => {
         .set('x-organization-id', org1);
 
       // Ensure org2's document is not in org1's list
-      expect(list1.body.every((doc) => doc.organizationId === org1)).toBe(
-        true,
-      );
+      expect(list1.body.every((doc) => doc.organizationId === org1)).toBe(true);
     });
 
     it('should never expose storagePath in any response', async () => {
@@ -344,4 +340,3 @@ describe('DocumentsModule Integration Tests', () => {
     });
   });
 });
-

@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHash } from 'crypto';
 import { randomUUID } from 'crypto';
@@ -17,13 +22,19 @@ export class DocumentsService {
     private readonly configService: ConfigService<Config, true>,
   ) {}
 
-  async upload(userId: string, dto: UploadDocumentDto, file: Express.Multer.File): Promise<Document> {
+  async upload(
+    userId: string,
+    dto: UploadDocumentDto,
+    file: Express.Multer.File,
+  ): Promise<Document> {
     // Generate checksum
     const checksum = createHash('sha256').update(file.buffer).digest('hex');
 
     // Generate storage path
     const uuid = randomUUID();
-    const sanitizedFilename = file.originalname.replace(/\s+/g, '-').toLowerCase();
+    const sanitizedFilename = file.originalname
+      .replace(/\s+/g, '-')
+      .toLowerCase();
     const storagePath = `organizations/${dto.organizationId}/documents/${uuid}/${sanitizedFilename}`;
 
     // Upload file to Supabase Storage
@@ -36,7 +47,9 @@ export class DocumentsService {
       });
 
     if (error) {
-      throw new InternalServerErrorException('Failed to upload file to storage');
+      throw new InternalServerErrorException(
+        'Failed to upload file to storage',
+      );
     }
 
     // Insert document record
@@ -68,10 +81,12 @@ export class DocumentsService {
         // Log but don't swallow the original error
         console.error('Failed to remove orphaned file:', removeError);
       }
-      throw new InternalServerErrorException('Failed to persist document metadata');
+      throw new InternalServerErrorException(
+        'Failed to persist document metadata',
+      );
     }
 
-    return created[0] as Document;
+    return created[0];
   }
 
   async findAll(organizationId: string): Promise<Document[]> {
@@ -86,7 +101,7 @@ export class DocumentsService {
       )
       .orderBy(desc(documents.createdAt));
 
-    return result as Document[];
+    return result;
   }
 
   async findById(id: string, organizationId: string): Promise<Document> {
@@ -105,7 +120,7 @@ export class DocumentsService {
       throw new NotFoundException('Document not found');
     }
 
-    return document as Document;
+    return document;
   }
 
   async getSignedUrl(storagePath: string): Promise<string> {
@@ -121,7 +136,11 @@ export class DocumentsService {
     return data.signedUrl;
   }
 
-  async softDelete(id: string, organizationId: string, userId: string): Promise<void> {
+  async softDelete(
+    id: string,
+    organizationId: string,
+    userId: string,
+  ): Promise<void> {
     // Verify document exists and belongs to org
     await this.findById(id, organizationId);
 
@@ -133,10 +152,7 @@ export class DocumentsService {
         deletedBy: userId,
       })
       .where(
-        and(
-          eq(documents.id, id),
-          eq(documents.organizationId, organizationId),
-        ),
+        and(eq(documents.id, id), eq(documents.organizationId, organizationId)),
       );
   }
 }

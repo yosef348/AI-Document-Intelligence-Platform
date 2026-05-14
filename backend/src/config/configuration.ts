@@ -7,6 +7,9 @@ export type Config = {
   database: {
     url: string;
   };
+  openai: {
+    apiKey: string;
+  };
   app: {
     nodeEnv: string;
   };
@@ -26,6 +29,7 @@ export default (): Config => {
   const serviceRoleKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
   const databaseUrl = requireEnv('DATABASE_URL');
   const nodeEnv = requireEnv('NODE_ENV');
+  const openAiApiKey = requireEnv('OPENAI_API_KEY');
 
   return {
     supabase: {
@@ -35,6 +39,9 @@ export default (): Config => {
     },
     database: {
       url: databaseUrl,
+    },
+    openai: {
+      apiKey: openAiApiKey,
     },
     app: {
       nodeEnv,
