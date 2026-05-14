@@ -5,6 +5,9 @@ import { EmbeddingsModule } from '../embeddings/embeddings.module';
 
 @Module({
   imports: [DatabaseModule, EmbeddingsModule],
+
+@Module({
+  imports: [DatabaseModule],
   providers: [IngestionService],
   exports: [IngestionService],
 })

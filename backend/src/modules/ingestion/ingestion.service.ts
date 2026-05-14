@@ -11,6 +11,8 @@ import type { Config } from '../../config/configuration';
 import * as mammoth from 'mammoth';
 import { EmbeddingsService } from '../embeddings/embeddings.service';
 
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const pdfParse = require('pdf-parse');
 
 @Injectable()
@@ -27,6 +29,9 @@ export class IngestionService {
     documentId: string,
     organizationId: string,
   ): Promise<void> {
+  ) {}
+
+  async processDocument(documentId: string, organizationId: string): Promise<void> {
     try {
       // Step 1: Update parsing status
       await this.updateDocumentParsingStatus(documentId, 'parsing');
@@ -46,6 +51,7 @@ export class IngestionService {
         throw new Error(
           `Organization mismatch: document belongs to ${document.organizationId}, ` +
             `not ${organizationId}`,
+          `not ${organizationId}`,
         );
       }
 
@@ -58,6 +64,10 @@ export class IngestionService {
         documentId,
         document.organizationId,
       );
+      const text = await this.extractText(document as Document);
+
+      // Step 4: Split into chunks (use document's organizationId)
+      const textChunks = this.chunkText(text, documentId, document.organizationId);
 
       // Step 5: Save chunks atomically
       await this.saveChunks(documentId, textChunks);
@@ -81,6 +91,13 @@ export class IngestionService {
       this.logger.log(
         `Document ${documentId} ingestion completed successfully`,
       );
+      // Step 6: Update parsing status to parsed
+      await this.updateDocumentParsingStatus(documentId, 'parsed');
+
+      // Step 7: Update processing status to indexing
+      await this.updateDocumentProcessingStatus(documentId, 'indexing');
+
+      this.logger.log(`Document ${documentId} ingestion completed successfully`);
     } catch (error) {
       this.logger.error(`Document ingestion failed for ${documentId}`, error);
       // Set both statuses to failed
@@ -92,6 +109,7 @@ export class IngestionService {
           `Failed to update document status for ${documentId}`,
           statusError,
         );
+        this.logger.error(`Failed to update document status for ${documentId}`, statusError);
       }
       // Rethrow the original error after status updates
       throw error;
@@ -111,6 +129,12 @@ export class IngestionService {
       throw new Error(
         `Failed to create signed URL for document: ${signedUrlError?.message}`,
       );
+    const { data: signedUrlData, error: signedUrlError } = await storageClient.storage
+      .from('documents')
+      .createSignedUrl(document.storagePath, 3600);
+
+    if (signedUrlError || !signedUrlData) {
+      throw new Error(`Failed to create signed URL for document: ${signedUrlError?.message}`);
     }
 
     // Download file
@@ -138,6 +162,7 @@ export class IngestionService {
     documentId: string,
     organizationId: string,
   ): NewChunk[] {
+  private chunkText(text: string, documentId: string, organizationId: string): NewChunk[] {
     // Normalize text and filter empty strings
     const normalizedText = text.trim();
     if (!normalizedText) {
@@ -199,6 +224,7 @@ export class IngestionService {
     documentId: string,
     chunkList: NewChunk[],
   ): Promise<void> {
+  private async saveChunks(documentId: string, chunkList: NewChunk[]): Promise<void> {
     // If no chunks to save, return early
     if (chunkList.length === 0) {
       return;
@@ -220,6 +246,7 @@ export class IngestionService {
     id: string,
     status: string,
   ): Promise<void> {
+  private async updateDocumentParsingStatus(id: string, status: string): Promise<void> {
     await this.db.db
       .update(documents)
       .set({
@@ -233,6 +260,7 @@ export class IngestionService {
     id: string,
     status: string,
   ): Promise<void> {
+  private async updateDocumentProcessingStatus(id: string, status: string): Promise<void> {
     await this.db.db
       .update(documents)
       .set({

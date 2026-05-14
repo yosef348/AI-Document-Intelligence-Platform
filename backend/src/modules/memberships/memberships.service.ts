@@ -5,6 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { and, eq, isNotNull, isNull } from 'drizzle-orm';
 import { DatabaseService } from '../../database/database.service';
 import { memberships } from '../../database/schema/memberships';
@@ -13,6 +14,7 @@ import {
   CreateMembershipDto,
   ALLOWED_ROLES,
 } from './dto/create-membership.dto';
+import { CreateMembershipDto, ALLOWED_ROLES } from './dto/create-membership.dto';
 
 @Injectable()
 export class MembershipsService {
@@ -22,6 +24,7 @@ export class MembershipsService {
     userId: string,
     organizationId: string,
   ): Promise<Membership> {
+  private async ensureOwnerOrAdmin(userId: string, organizationId: string): Promise<Membership> {
     const [membership] = await this.db.db
       .select()
       .from(memberships)
@@ -48,6 +51,14 @@ export class MembershipsService {
     invitedBy: string,
     dto: CreateMembershipDto,
   ): Promise<Membership> {
+    if (!membership || !['owner', 'admin'].includes((membership as Membership).role)) {
+      throw new ForbiddenException('Insufficient role');
+    }
+
+    return membership as Membership;
+  }
+
+  async invite(organizationId: string, invitedBy: string, dto: CreateMembershipDto): Promise<Membership> {
     // Verify inviter has role in ['owner','admin']
     await this.ensureOwnerOrAdmin(invitedBy, organizationId);
 
@@ -66,6 +77,7 @@ export class MembershipsService {
       throw new ConflictException(
         'User is already a member of this organization',
       );
+      throw new ConflictException('User is already a member of this organization');
     }
 
     // Insert into memberships table
@@ -87,6 +99,10 @@ export class MembershipsService {
     userId: string,
     organizationId: string,
   ): Promise<Membership> {
+    return created as Membership;
+  }
+
+  async acceptInvitation(userId: string, organizationId: string): Promise<Membership> {
     // Update the membership to set joinedAt = new Date()
     const [updated] = await this.db.db
       .update(memberships)
@@ -111,6 +127,10 @@ export class MembershipsService {
     organizationId: string,
     requesterId: string,
   ): Promise<Membership[]> {
+    return updated as Membership;
+  }
+
+  async listByOrganization(organizationId: string, requesterId: string): Promise<Membership[]> {
     // Verify requester is a member of the organization with owner/admin role
     await this.ensureOwnerOrAdmin(requesterId, organizationId);
 
@@ -125,6 +145,7 @@ export class MembershipsService {
       );
 
     return result;
+    return result as Membership[];
   }
 
   async findByUserId(userId: string): Promise<Membership[]> {
@@ -149,6 +170,19 @@ export class MembershipsService {
       throw new BadRequestException(
         `Invalid role. Must be one of: ${ALLOWED_ROLES.join(', ')}`,
       );
+        and(
+          eq(memberships.userId, userId),
+          isNotNull(memberships.joinedAt),
+        ),
+      );
+
+    return result as Membership[];
+  }
+
+  async updateRole(organizationId: string, userId: string, updatedBy: string, role: string): Promise<Membership> {
+    // Validate role
+    if (!ALLOWED_ROLES.includes(role as any)) {
+      throw new BadRequestException(`Invalid role. Must be one of: ${ALLOWED_ROLES.join(', ')}`);
     }
 
     // Prevent self-modification
@@ -182,6 +216,7 @@ export class MembershipsService {
         (targetMembership as Membership).role === 'owner' &&
         role !== 'owner'
       ) {
+      if ((targetMembership as Membership).role === 'owner' && role !== 'owner') {
         const ownerRows = await tx
           .select()
           .from(memberships)
@@ -197,6 +232,7 @@ export class MembershipsService {
           throw new ForbiddenException(
             'Cannot remove the last owner of the organization',
           );
+          throw new ForbiddenException('Cannot remove the last owner of the organization');
         }
       }
 
@@ -218,6 +254,7 @@ export class MembershipsService {
       }
 
       return updated;
+      return updated as Membership;
     });
   }
 }

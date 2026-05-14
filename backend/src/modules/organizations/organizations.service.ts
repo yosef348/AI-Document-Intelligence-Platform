@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { and, eq, isNotNull } from 'drizzle-orm';
 import { DatabaseService } from '../../database/database.service';
 import { memberships, organizations } from '../../database/schema';
@@ -19,6 +20,7 @@ export class OrganizationsService {
     userId: string,
     dto: CreateOrganizationDto,
   ): Promise<Organization> {
+  async create(userId: string, dto: CreateOrganizationDto): Promise<Organization> {
     try {
       const created = await this.db.db.transaction(async (tx) => {
         const [org] = await tx
@@ -34,6 +36,7 @@ export class OrganizationsService {
         });
 
         return org;
+        return org as Organization;
       });
 
       return created;
@@ -48,6 +51,8 @@ export class OrganizationsService {
         throw new ConflictException(
           'Organization with this slug already exists',
         );
+      if (typeof err === 'object' && err !== null && 'code' in err && (err as { code?: string }).code === '23505') {
+        throw new ConflictException('Organization with this slug already exists');
       }
       throw err as Error;
     }
@@ -68,6 +73,7 @@ export class OrganizationsService {
     return (result as Array<{ organization: Organization }>).map(
       (r: { organization: Organization }) => r.organization,
     );
+    return (result as Array<{ organization: Organization }>).map((r: { organization: Organization }) => r.organization);
   }
 
   async findById(id: string, userId: string): Promise<Organization> {
@@ -96,6 +102,7 @@ export class OrganizationsService {
     organizationId: string,
     userId: string,
   ): Promise<Membership> {
+  async getMembership(organizationId: string, userId: string): Promise<Membership> {
     const [member] = await this.db.db
       .select()
       .from(memberships)
@@ -118,6 +125,10 @@ export class OrganizationsService {
     userId: string,
     dto: UpdateOrganizationDto,
   ): Promise<Organization> {
+    return member as Membership;
+  }
+
+  async update(id: string, userId: string, dto: UpdateOrganizationDto): Promise<Organization> {
     // verify role owner or admin
     const membership = await this.getMembership(id, userId);
     if (!['owner', 'admin'].includes(membership.role)) {
@@ -142,6 +153,9 @@ export class OrganizationsService {
         'code' in err &&
         (err as { code?: string }).code === '23505'
       ) {
+      return updated as Organization;
+    } catch (err) {
+      if (typeof err === 'object' && err !== null && 'code' in err && (err as { code?: string }).code === '23505') {
         throw new ConflictException('Slug already exists');
       }
       throw err as Error;
