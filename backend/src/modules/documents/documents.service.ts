@@ -38,7 +38,11 @@ export class DocumentsService {
     const storagePath = `organizations/${dto.organizationId}/documents/${uuid}/${sanitizedFilename}`;
 
     // Upload file to Supabase Storage
-    const storageClient = getStorageClient(this.configService);
+    const url = this.configService.get('supabase.url', { infer: true });
+    const serviceRoleKey = this.configService.get('supabase.serviceRoleKey', {
+      infer: true,
+    });
+    const storageClient = getStorageClient(url, serviceRoleKey);
     const { error } = await storageClient.storage
       .from('documents')
       .upload(storagePath, file.buffer, {
@@ -124,7 +128,11 @@ export class DocumentsService {
   }
 
   async getSignedUrl(storagePath: string): Promise<string> {
-    const storageClient = getStorageClient(this.configService);
+    const url = this.configService.get('supabase.url', { infer: true });
+    const serviceRoleKey = this.configService.get('supabase.serviceRoleKey', {
+      infer: true,
+    });
+    const storageClient = getStorageClient(url, serviceRoleKey);
     const { data, error } = await storageClient.storage
       .from('documents')
       .createSignedUrl(storagePath, 3600);

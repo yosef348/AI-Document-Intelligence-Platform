@@ -13,6 +13,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
@@ -26,6 +27,8 @@ import type { Document } from '../../database/schema/documents';
 
 @Controller('documents')
 @UseGuards(SupabaseAuthGuard)
+@ApiTags('documents')
+@ApiBearerAuth()
 export class DocumentsController {
   private readonly logger = new Logger(DocumentsController.name);
 

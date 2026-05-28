@@ -99,7 +99,11 @@ export class IngestionService {
   }
 
   private async extractText(document: Document): Promise<string> {
-    const storageClient = getStorageClient(this.configService);
+    const url = this.configService.get('supabase.url', { infer: true });
+    const serviceRoleKey = this.configService.get('supabase.serviceRoleKey', {
+      infer: true,
+    });
+    const storageClient = getStorageClient(url, serviceRoleKey);
 
     // Create signed URL to download file
     const { data: signedUrlData, error: signedUrlError } =

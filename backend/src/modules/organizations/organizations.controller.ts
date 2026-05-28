@@ -9,6 +9,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { User } from '@supabase/supabase-js';
@@ -19,8 +20,12 @@ import type { Membership, Organization } from '../../database/schema';
 
 @Controller('organizations')
 @UseGuards(SupabaseAuthGuard)
+@ApiTags('organizations')
+@ApiBearerAuth()
 export class OrganizationsController {
-  constructor(private readonly organizationsService: OrganizationsService) {}
+  constructor(
+    private readonly organizationsService: OrganizationsService,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)

@@ -5,6 +5,18 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="5cea47e6-7c4c-4b6b-bff8-e55a8998067f" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/app.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/app.controller.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/app.module.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/app.module.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/common/helpers/supabase-storage.helper.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/common/helpers/supabase-storage.helper.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/config/configuration.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/config/configuration.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/modules/auth/auth.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/modules/auth/auth.controller.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/modules/documents/documents.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/modules/documents/documents.controller.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/modules/documents/documents.module.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/modules/documents/documents.module.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/modules/documents/documents.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/modules/documents/documents.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/modules/ingestion/ingestion.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/modules/ingestion/ingestion.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/modules/organizations/organizations.controller.ts" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/modules/organizations/organizations.controller.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend" beforeDir="false" afterPath="$PROJECT_DIR$/frontend" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/package.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/app/globals.css" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/app/globals.css" afterDir="false" />
@@ -43,7 +55,7 @@
     &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;feature/embeddings-services&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;feature/Findings-module&quot;,
     &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
     &quot;last_opened_file_path&quot;: &quot;C:/Users/hp/Desktop/ai-document-intelligence&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
@@ -80,6 +92,12 @@
       <workItem from="1778762446572" duration="5721000" />
       <workItem from="1778772699793" duration="292000" />
       <workItem from="1778781191708" duration="4901000" />
+      <workItem from="1778791619867" duration="62000" />
+      <workItem from="1779288376273" duration="5550000" />
+      <workItem from="1779464509173" duration="4843000" />
+      <workItem from="1779561309707" duration="1403000" />
+      <workItem from="1779904990996" duration="1393000" />
+      <workItem from="1779949042019" duration="543000" />
     </task>
     <servers />
   </component>
