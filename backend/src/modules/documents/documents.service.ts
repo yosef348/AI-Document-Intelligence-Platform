@@ -28,7 +28,7 @@ export class DocumentsService {
     dto: UploadDocumentDto,
     file: Express.Multer.File,
   ): Promise<Document> {
-    // Generate checksum from file stream on disk
+    // Generate checksum from file stream on disk (avoid loading whole file to memory)
     const hash = createHash('sha256');
     await new Promise<void>((resolve, reject) => {
       const rs = fs.createReadStream(file.path);
@@ -101,7 +101,7 @@ export class DocumentsService {
       );
     }
 
-    return created[0];
+    return created[0] as Document;
   }
 
   async findAll(organizationId: string): Promise<Document[]> {
@@ -116,7 +116,7 @@ export class DocumentsService {
       )
       .orderBy(desc(documents.createdAt));
 
-    return result;
+    return result as Document[];
   }
 
   async findById(id: string, organizationId: string): Promise<Document> {
@@ -135,7 +135,7 @@ export class DocumentsService {
       throw new NotFoundException('Document not found');
     }
 
-    return document;
+    return document as Document;
   }
 
   async getSignedUrl(storagePath: string): Promise<string> {

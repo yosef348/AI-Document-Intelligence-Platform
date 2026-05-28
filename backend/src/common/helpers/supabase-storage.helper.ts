@@ -23,5 +23,5 @@ export function getStorageClient(
     lastStorageUrl = url;
     lastServiceRoleKey = serviceRoleKey;
   }
-  return storageClient;
+  return storageClient as SupabaseClient;
 }

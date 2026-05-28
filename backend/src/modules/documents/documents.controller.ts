@@ -116,7 +116,6 @@ export class DocumentsController {
     } catch (e) {
       this.logger.warn(`Failed to remove temp file: ${file.path}`);
     }
-
     return this.mapDocumentWithSignedUrl(document, signedUrl);
   }
 
