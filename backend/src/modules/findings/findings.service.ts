@@ -118,7 +118,13 @@ export class FindingsService {
     const updated = await this.db.db
       .update(findings)
       .set(updateData)
-      .where(eq(findings.id, id))
+      .where(
+        and(
+          eq(findings.id, id),
+          eq(findings.organizationId, organizationId),
+          isNull(findings.deletedAt),
+        ),
+      )
       .returning()
       .then((r) => r[0]);
 
@@ -143,23 +149,23 @@ export class FindingsService {
     );
 
     const row = (statsRows as unknown as Array<{
-      open_count: number;
-      critical_count: number;
-      high_count: number;
-      medium_count: number;
-      low_count: number;
-      info_count: number;
-      total_count: number;
+      open_count: string | number | null;
+      critical_count: string | number | null;
+      high_count: string | number | null;
+      medium_count: string | number | null;
+      low_count: string | number | null;
+      info_count: string | number | null;
+      total_count: string | number | null;
     }>)[0];
 
     return {
-      total: row?.total_count ?? 0,
-      open: row?.open_count ?? 0,
-      critical: row?.critical_count ?? 0,
-      high: row?.high_count ?? 0,
-      medium: row?.medium_count ?? 0,
-      low: row?.low_count ?? 0,
-      info: row?.info_count ?? 0,
+      total: row?.total_count != null ? Number(row.total_count) : 0,
+      open: row?.open_count != null ? Number(row.open_count) : 0,
+      critical: row?.critical_count != null ? Number(row.critical_count) : 0,
+      high: row?.high_count != null ? Number(row.high_count) : 0,
+      medium: row?.medium_count != null ? Number(row.medium_count) : 0,
+      low: row?.low_count != null ? Number(row.low_count) : 0,
+      info: row?.info_count != null ? Number(row.info_count) : 0,
     };
   }
 }
