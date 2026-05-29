@@ -25,12 +25,6 @@ export class IngestionService {
     private readonly embeddingsService: EmbeddingsService, // Inject EmbeddingsService
   ) {}
 
-  async processDocument(
-    documentId: string,
-    organizationId: string,
-  ): Promise<void> {
-  ) {}
-
   async processDocument(documentId: string, organizationId: string): Promise<void> {
     try {
       // Step 1: Update parsing status
@@ -51,19 +45,10 @@ export class IngestionService {
         throw new Error(
           `Organization mismatch: document belongs to ${document.organizationId}, ` +
             `not ${organizationId}`,
-          `not ${organizationId}`,
         );
       }
 
       // Step 3: Extract text
-      const text = await this.extractText(document);
-
-      // Step 4: Split into chunks (use document's organizationId)
-      const textChunks = this.chunkText(
-        text,
-        documentId,
-        document.organizationId,
-      );
       const text = await this.extractText(document as Document);
 
       // Step 4: Split into chunks (use document's organizationId)
@@ -88,15 +73,6 @@ export class IngestionService {
       // Step 8: Update processing status to indexing
       await this.updateDocumentProcessingStatus(documentId, 'indexing');
 
-      this.logger.log(
-        `Document ${documentId} ingestion completed successfully`,
-      );
-      // Step 6: Update parsing status to parsed
-      await this.updateDocumentParsingStatus(documentId, 'parsed');
-
-      // Step 7: Update processing status to indexing
-      await this.updateDocumentProcessingStatus(documentId, 'indexing');
-
       this.logger.log(`Document ${documentId} ingestion completed successfully`);
     } catch (error) {
       this.logger.error(`Document ingestion failed for ${documentId}`, error);
@@ -109,7 +85,6 @@ export class IngestionService {
           `Failed to update document status for ${documentId}`,
           statusError,
         );
-        this.logger.error(`Failed to update document status for ${documentId}`, statusError);
       }
       // Rethrow the original error after status updates
       throw error;
@@ -120,15 +95,6 @@ export class IngestionService {
     const storageClient = getStorageClient(this.configService);
 
     // Create signed URL to download file
-    const { data: signedUrlData, error: signedUrlError } =
-      await storageClient.storage
-        .from('documents')
-        .createSignedUrl(document.storagePath, 3600);
-
-    if (signedUrlError || !signedUrlData) {
-      throw new Error(
-        `Failed to create signed URL for document: ${signedUrlError?.message}`,
-      );
     const { data: signedUrlData, error: signedUrlError } = await storageClient.storage
       .from('documents')
       .createSignedUrl(document.storagePath, 3600);
@@ -157,11 +123,6 @@ export class IngestionService {
     }
   }
 
-  private chunkText(
-    text: string,
-    documentId: string,
-    organizationId: string,
-  ): NewChunk[] {
   private chunkText(text: string, documentId: string, organizationId: string): NewChunk[] {
     // Normalize text and filter empty strings
     const normalizedText = text.trim();
@@ -220,10 +181,6 @@ export class IngestionService {
     return chunks;
   }
 
-  private async saveChunks(
-    documentId: string,
-    chunkList: NewChunk[],
-  ): Promise<void> {
   private async saveChunks(documentId: string, chunkList: NewChunk[]): Promise<void> {
     // If no chunks to save, return early
     if (chunkList.length === 0) {
@@ -242,10 +199,6 @@ export class IngestionService {
     });
   }
 
-  private async updateDocumentParsingStatus(
-    id: string,
-    status: string,
-  ): Promise<void> {
   private async updateDocumentParsingStatus(id: string, status: string): Promise<void> {
     await this.db.db
       .update(documents)
@@ -256,10 +209,6 @@ export class IngestionService {
       .where(eq(documents.id, id));
   }
 
-  private async updateDocumentProcessingStatus(
-    id: string,
-    status: string,
-  ): Promise<void> {
   private async updateDocumentProcessingStatus(id: string, status: string): Promise<void> {
     await this.db.db
       .update(documents)

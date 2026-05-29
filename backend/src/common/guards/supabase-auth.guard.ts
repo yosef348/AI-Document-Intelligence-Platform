@@ -25,7 +25,6 @@ export class SupabaseAuthGuard implements CanActivate {
       throw new Error(
         'Supabase configuration is missing: SUPABASE_URL and/or SUPABASE_ANON_KEY',
       );
-      throw new Error('Supabase configuration is missing: SUPABASE_URL and/or SUPABASE_ANON_KEY');
     }
     this.supabase = createClient(url, anonKey, {
       auth: { persistSession: false, autoRefreshToken: false },
@@ -44,8 +43,6 @@ export class SupabaseAuthGuard implements CanActivate {
           ? authHeader[0]
           : undefined,
     );
-      req.headers['authorization'] ?? req.headers['Authorization' as keyof typeof req.headers];
-    const token = this.extractBearerToken(typeof authHeader === 'string' ? authHeader : Array.isArray(authHeader) ? authHeader[0] : undefined);
 
     if (!token) {
       throw new UnauthorizedException('Missing Bearer token');
@@ -67,7 +64,6 @@ export class SupabaseAuthGuard implements CanActivate {
       throw new ServiceUnavailableException(
         'Authentication service unavailable',
       );
-      throw new ServiceUnavailableException('Authentication service unavailable');
     }
     return true;
   }
