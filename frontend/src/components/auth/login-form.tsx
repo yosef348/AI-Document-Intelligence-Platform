@@ -1,18 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AuthCard } from '@/components/auth/auth-card';
-import { createClient } from '@/lib/supabase/client';
 
 export function LoginForm(): React.JSX.Element {
   const router = useRouter();
+  const supabase = createClient();
 
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
@@ -22,133 +22,91 @@ export function LoginForm(): React.JSX.Element {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>): Promise<void> {
     e.preventDefault();
-    setIsLoading(true);
     setError(null);
+    setIsLoading(true);
 
-    const supabase = createClient();
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (authError) {
-      setError(authError.message);
+      if (signInError) {
+        setError(signInError.message);
+        setIsLoading(false);
+        return;
+      }
+
+      router.push('/dashboard');
+    } catch (err) {
+      setError((err as Error).message ?? 'Sign in failed');
       setIsLoading(false);
-      return;
     }
-
-    router.push('/dashboard');
   }
 
   return (
-    <AuthCard
-      title="Welcome back"
-      subtitle="Sign in to your DocIntel account"
-    >
-      <form onSubmit={handleSubmit} className="space-y-5">
-        {/* Email */}
-        <div className="space-y-2">
-          <Label htmlFor="login-email">Email address</Label>
-          <Input
-            id="login-email"
-            type="email"
-            placeholder="you@company.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            autoComplete="email"
-            disabled={isLoading}
-          />
-        </div>
-
-        {/* Password */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="login-password">Password</Label>
-            <button
-              type="button"
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-not-allowed opacity-50"
-              disabled
-              aria-label="Forgot password (coming soon)"
-            >
-              Forgot password?
-            </button>
-          </div>
-          <div className="relative">
-            <Input
-              id="login-password"
-              type={showPassword ? 'text' : 'password'}
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-              disabled={isLoading}
-              className="pr-10"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword((prev) => !prev)}
-              className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground transition-colors"
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
-              disabled={isLoading}
-            >
-              {showPassword ? (
-                <EyeOff size={16} />
-              ) : (
-                <Eye size={16} />
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Error alert */}
-        {error !== null && (
-          <Alert variant="destructive" className="animate-fade-in">
+    <AuthCard title="Welcome back" subtitle="Sign in to your DocIntel account">
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+        {error && (
+          <Alert className="mb-2">
+            <AlertTitle>Authentication error</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
-        {/* Submit */}
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={isLoading}
-          id="login-submit"
-        >
-          {isLoading ? (
-            <>
-              <Loader2 size={16} className="mr-2 animate-spin" />
-              Signing in…
-            </>
-          ) : (
-            'Sign in'
-          )}
-        </Button>
+        <div>
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            value={email}
+            onChange={(ev) => setEmail(ev.target.value)}
+            placeholder="you@company.com"
+            required
+            className="mt-1"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="password">Password</Label>
+          <div className="relative mt-1">
+            <Input
+              id="password"
+              name="password"
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(ev) => setPassword(ev.target.value)}
+              placeholder="••••••••"
+              required
+            />
+            <button
+              type="button"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              onClick={() => setShowPassword((s) => !s)}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground"
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div className="text-xs text-muted-foreground pointer-events-none opacity-70">Forgot password?</div>
+          <div className="text-xs">
+            <a href="/signup" className="text-primary hover:underline">
+              Don&apos;t have an account?
+            </a>
+          </div>
+        </div>
+
+        <div>
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Sign in
+          </Button>
+        </div>
       </form>
-
-      {/* Divider */}
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-border" />
-        </div>
-        <div className="relative flex justify-center">
-          <span className="bg-card px-3 text-xs text-muted-foreground">
-            New to DocIntel?
-          </span>
-        </div>
-      </div>
-
-      {/* Sign up link */}
-      <p className="text-center text-sm text-muted-foreground">
-        Don&apos;t have an account?{' '}
-        <Link
-          href="/signup"
-          className="font-medium text-primary hover:text-primary/80 transition-colors underline-offset-4 hover:underline"
-        >
-          Create one for free
-        </Link>
-      </p>
     </AuthCard>
   );
 }

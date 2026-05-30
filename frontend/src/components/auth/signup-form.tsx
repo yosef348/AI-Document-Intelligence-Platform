@@ -1,16 +1,19 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { Eye, EyeOff, Loader2, Mail, CheckCircle2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Eye, EyeOff, Loader2, Mail } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AuthCard } from '@/components/auth/auth-card';
-import { createClient } from '@/lib/supabase/client';
 
 export function SignupForm(): React.JSX.Element {
+  const router = useRouter();
+  const supabase = createClient();
+
   const [fullName, setFullName] = useState<string>('');
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
@@ -24,11 +27,11 @@ export function SignupForm(): React.JSX.Element {
     e.preventDefault();
     setError(null);
 
-    // Client-side validation
     if (password.length < 8) {
-      setError('Password must be at least 8 characters long.');
+      setError('Password must be at least 8 characters.');
       return;
     }
+
     if (password !== confirmPassword) {
       setError('Passwords do not match.');
       return;
@@ -36,182 +39,145 @@ export function SignupForm(): React.JSX.Element {
 
     setIsLoading(true);
 
-    const supabase = createClient();
-    const { error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName },
-      },
-    });
+    try {
+      const { error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: fullName },
+        },
+      });
 
-    if (authError) {
-      setError(authError.message);
+      if (signUpError) {
+        setError(signUpError.message);
+        setIsLoading(false);
+        return;
+      }
+
+      setSuccess(true);
       setIsLoading(false);
-      return;
+    } catch (err) {
+      setError((err as Error).message ?? 'Sign up failed');
+      setIsLoading(false);
     }
-
-    setSuccess(true);
-    setIsLoading(false);
   }
 
-  // Success state — email confirmation screen
   if (success) {
     return (
-      <AuthCard
-        title="Check your email"
-        subtitle="We sent you a confirmation link"
-      >
-        <div className="flex flex-col items-center gap-4 py-4 animate-fade-in">
-          <div className="flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 border border-primary/20">
-            <Mail size={28} className="text-primary" />
+      <AuthCard title="Check your inbox" subtitle="We've sent a confirmation email">
+        <div className="space-y-4">
+          <div className="flex items-center space-x-3">
+            <div className="rounded-md bg-primary/10 p-3 text-primary">
+              <Mail size={20} />
+            </div>
+            <div>
+              <p className="font-medium">Confirm your email</p>
+              <p className="text-sm text-muted-foreground">
+                We sent a sign-up confirmation to <span className="font-medium text-foreground">{email}</span>. Please follow the instructions in the email to finish creating your account.
+              </p>
+            </div>
           </div>
-          <div className="text-center space-y-2">
-            <p className="font-medium text-foreground">
-              Confirmation email sent to
-            </p>
-            <p className="text-sm font-semibold text-primary break-all">{email}</p>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Click the link in the email to activate your account. Check your
-              spam folder if you don&apos;t see it within a few minutes.
-            </p>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/40 rounded-lg px-4 py-2 border border-border/50">
-            <CheckCircle2 size={14} className="text-primary flex-shrink-0" />
-            <span>Your account will be active once you verify your email.</span>
+
+          <div className="flex space-x-2">
+            <Button variant="ghost" onClick={() => router.push('/login')}>
+              Back to sign in
+            </Button>
           </div>
         </div>
-
-        <p className="text-center text-sm text-muted-foreground">
-          Already verified?{' '}
-          <Link
-            href="/login"
-            className="font-medium text-primary hover:text-primary/80 transition-colors underline-offset-4 hover:underline"
-          >
-            Sign in
-          </Link>
-        </p>
       </AuthCard>
     );
   }
 
   return (
-    <AuthCard
-      title="Create your account"
-      subtitle="Start analyzing documents with AI"
-    >
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Full name */}
-        <div className="space-y-2">
-          <Label htmlFor="signup-fullname">Full name</Label>
-          <Input
-            id="signup-fullname"
-            type="text"
-            placeholder="Jane Smith"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            required
-            autoComplete="name"
-            disabled={isLoading}
-          />
-        </div>
-
-        {/* Email */}
-        <div className="space-y-2">
-          <Label htmlFor="signup-email">Email address</Label>
-          <Input
-            id="signup-email"
-            type="email"
-            placeholder="you@company.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            autoComplete="email"
-            disabled={isLoading}
-          />
-        </div>
-
-        {/* Password */}
-        <div className="space-y-2">
-          <Label htmlFor="signup-password">Password</Label>
-          <div className="relative">
-            <Input
-              id="signup-password"
-              type={showPassword ? 'text' : 'password'}
-              placeholder="Min. 8 characters"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="new-password"
-              disabled={isLoading}
-              className="pr-10"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword((prev) => !prev)}
-              className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground transition-colors"
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
-              disabled={isLoading}
-            >
-              {showPassword ? (
-                <EyeOff size={16} />
-              ) : (
-                <Eye size={16} />
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Confirm password */}
-        <div className="space-y-2">
-          <Label htmlFor="signup-confirm-password">Confirm password</Label>
-          <Input
-            id="signup-confirm-password"
-            type={showPassword ? 'text' : 'password'}
-            placeholder="Re-enter your password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            required
-            autoComplete="new-password"
-            disabled={isLoading}
-          />
-        </div>
-
-        {/* Error alert */}
-        {error !== null && (
-          <Alert variant="destructive" className="animate-fade-in">
+    <AuthCard title="Create your account" subtitle="Start analyzing documents with AI">
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+        {error && (
+          <Alert className="mb-2">
+            <AlertTitle>Error</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
-        {/* Submit */}
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={isLoading}
-          id="signup-submit"
-        >
-          {isLoading ? (
-            <>
-              <Loader2 size={16} className="mr-2 animate-spin" />
-              Creating account…
-            </>
-          ) : (
-            'Create account'
-          )}
-        </Button>
-      </form>
+        <div>
+          <Label htmlFor="fullName">Full name</Label>
+          <Input
+            id="fullName"
+            name="fullName"
+            type="text"
+            value={fullName}
+            onChange={(ev) => setFullName(ev.target.value)}
+            placeholder="Jane Doe"
+            required
+            className="mt-1"
+          />
+        </div>
 
-      {/* Sign in link */}
-      <p className="text-center text-sm text-muted-foreground">
-        Already have an account?{' '}
-        <Link
-          href="/login"
-          className="font-medium text-primary hover:text-primary/80 transition-colors underline-offset-4 hover:underline"
-        >
-          Sign in
-        </Link>
-      </p>
+        <div>
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            value={email}
+            onChange={(ev) => setEmail(ev.target.value)}
+            placeholder="you@company.com"
+            required
+            className="mt-1"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="password">Password</Label>
+          <div className="relative mt-1">
+            <Input
+              id="password"
+              name="password"
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(ev) => setPassword(ev.target.value)}
+              placeholder="Create a password"
+              required
+            />
+            <button
+              type="button"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              onClick={() => setShowPassword((s) => !s)}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground"
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <Label htmlFor="confirmPassword">Confirm password</Label>
+          <Input
+            id="confirmPassword"
+            name="confirmPassword"
+            type="password"
+            value={confirmPassword}
+            onChange={(ev) => setConfirmPassword(ev.target.value)}
+            placeholder="Repeat your password"
+            required
+            className="mt-1"
+          />
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div className="text-xs">
+            <a href="/login" className="text-primary hover:underline">
+              Already have an account?
+            </a>
+          </div>
+        </div>
+
+        <div>
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Create account
+          </Button>
+        </div>
+      </form>
     </AuthCard>
   );
 }
