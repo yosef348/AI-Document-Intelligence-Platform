@@ -97,7 +97,6 @@ export function FindingsTable({ findings, isLoading, onStatusChange, onViewDetai
               </td>
               <td className="py-3 px-4">
                 <span className="text-sm text-muted-foreground truncate max-w-xs">
-                  {/* Document name would need to be fetched or passed separately */}
                   Document
                 </span>
               </td>
@@ -139,4 +138,6 @@ export function FindingsTable({ findings, isLoading, onStatusChange, onViewDetai
     </div>
   );
 }
+
+
 

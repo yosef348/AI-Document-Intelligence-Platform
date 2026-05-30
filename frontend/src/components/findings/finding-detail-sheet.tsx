@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { SeverityBadge } from '@/components/shared/severity-badge';
 import { StatusSelect } from './status-select';
 import { formatFindingType, formatConfidence, formatDate } from '@/lib/utils/format';
-import type { Finding } from '@/types';
+import type { Finding, FindingStatus } from '@/types';
 
 interface FindingDetailSheetProps {
   finding: Finding | null;
@@ -35,8 +35,8 @@ export function FindingDetailSheet({ finding, open, onClose, onStatusChange }: F
     }
   };
 
-  const getNextActions = (): { label: string; status: string }[] => {
-    const actions: Record<string, { label: string; status: string }[]> = {
+  const getNextActions = (): { label: string; status: FindingStatus }[] => {
+    const actions: Record<FindingStatus, { label: string; status: FindingStatus }[]> = {
       open: [
         { label: 'Acknowledge', status: 'acknowledged' },
         { label: 'Dismiss', status: 'dismissed' },
@@ -51,6 +51,9 @@ export function FindingDetailSheet({ finding, open, onClose, onStatusChange }: F
         { label: 'Dismiss', status: 'dismissed' },
         { label: 'False Positive', status: 'false_positive' },
       ],
+      resolved: [],
+      dismissed: [],
+      false_positive: [],
     };
     return actions[finding.status] || [];
   };
@@ -173,4 +176,6 @@ export function FindingDetailSheet({ finding, open, onClose, onStatusChange }: F
     </Sheet>
   );
 }
+
+
 

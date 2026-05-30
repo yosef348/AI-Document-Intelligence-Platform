@@ -40,7 +40,7 @@ export function FindingsFilter({ filters, onChange, totalCount }: FindingsFilter
         </div>
 
         {/* Severity filter */}
-        <Select value={filters.severity} onValueChange={(val) => onChange({ ...filters, severity: val })}>
+        <Select value={filters.severity} onValueChange={(val: string) => onChange({ ...filters, severity: val })}>
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Severity" />
           </SelectTrigger>
@@ -55,7 +55,7 @@ export function FindingsFilter({ filters, onChange, totalCount }: FindingsFilter
         </Select>
 
         {/* Status filter */}
-        <Select value={filters.status} onValueChange={(val) => onChange({ ...filters, status: val })}>
+        <Select value={filters.status} onValueChange={(val: string) => onChange({ ...filters, status: val })}>
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
@@ -78,11 +78,13 @@ export function FindingsFilter({ filters, onChange, totalCount }: FindingsFilter
         )}
 
         {/* Count */}
-        <div className="text-sm text-muted-foreground ml-2">
+        <div className="text-sm text-muted-foreground ml-2 whitespace-nowrap">
           {totalCount} finding{totalCount !== 1 ? 's' : ''}
         </div>
       </div>
     </div>
   );
 }
+
+
 

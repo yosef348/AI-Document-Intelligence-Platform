@@ -10,14 +10,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
+import type { FindingStatus } from '@/types';
 
 interface StatusSelectProps {
-  currentStatus: string;
+  currentStatus: FindingStatus;
   onStatusChange: (status: string) => Promise<void>;
   isLoading?: boolean;
 }
 
-const statusColors: Record<string, string> = {
+const statusColors: Record<FindingStatus, string> = {
   open: 'bg-blue-500/10 text-blue-700 border-blue-200',
   acknowledged: 'bg-yellow-500/10 text-yellow-700 border-yellow-200',
   in_review: 'bg-purple-500/10 text-purple-700 border-purple-200',
@@ -26,7 +27,7 @@ const statusColors: Record<string, string> = {
   false_positive: 'bg-red-500/10 text-red-700 border-red-200',
 };
 
-const statusLabels: Record<string, string> = {
+const statusLabels: Record<FindingStatus, string> = {
   open: 'Open',
   acknowledged: 'Acknowledged',
   in_review: 'In Review',
@@ -35,9 +36,7 @@ const statusLabels: Record<string, string> = {
   false_positive: 'False Positive',
 };
 
-type TransitionMap = Record<string, string[]>;
-
-const statusTransitions: TransitionMap = {
+const statusTransitions: Record<FindingStatus, FindingStatus[]> = {
   open: ['acknowledged', 'dismissed'],
   acknowledged: ['in_review', 'resolved', 'dismissed'],
   in_review: ['resolved', 'dismissed', 'false_positive'],
@@ -52,7 +51,7 @@ export function StatusSelect({ currentStatus, onStatusChange, isLoading = false 
   const canTransition = statusTransitions[currentStatus] && statusTransitions[currentStatus].length > 0;
   const possibleTransitions = statusTransitions[currentStatus] || [];
 
-  const handleStatusChange = async (newStatus: string): Promise<void> => {
+  const handleStatusChange = async (newStatus: FindingStatus): Promise<void> => {
     setIsUpdating(true);
     try {
       await onStatusChange(newStatus);
@@ -99,4 +98,6 @@ export function StatusSelect({ currentStatus, onStatusChange, isLoading = false 
     </DropdownMenu>
   );
 }
+
+
 
