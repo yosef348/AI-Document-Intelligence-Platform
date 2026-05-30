@@ -1,13 +1,3 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Patch,
-  Post,
-  UseGuards,
-  ValidationPipe,
-} from '@nestjs/common';
 import { Body, Controller, Get, Param, Patch, Post, UseGuards, ValidationPipe } from '@nestjs/common';
 import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -60,6 +50,5 @@ export class MembershipsController {
       user.id,
       body.role,
     );
-    return this.membershipsService.updateRole(orgId, userId, user.id, body.role);
   }
 }
