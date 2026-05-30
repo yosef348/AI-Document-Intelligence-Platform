@@ -1,6 +1,23 @@
-import { BadRequestException, Body, Controller, Delete, Get, HttpCode, HttpStatus, Logger, Param, Post, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Logger,
+  Param,
+  Post,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { memoryStorage } from 'multer';
+import { diskStorage } from 'multer';
+import * as fs from 'fs';
+import * as os from 'os';
 import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { OrganizationId } from '../../common/decorators/organization-id.decorator';
@@ -12,6 +29,8 @@ import type { Document } from '../../database/schema/documents';
 
 @Controller('documents')
 @UseGuards(SupabaseAuthGuard)
+@ApiTags('documents')
+@ApiBearerAuth()
 export class DocumentsController {
   private readonly logger = new Logger(DocumentsController.name);
 
@@ -33,7 +52,10 @@ export class DocumentsController {
   @Post('upload')
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: memoryStorage(),
+      storage: diskStorage({
+        destination: (_req, _file, cb) => cb(null, os.tmpdir()),
+        filename: (_req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
+      }),
       limits: { fileSize: 50 * 1024 * 1024 },
     }),
   ) // 50MB limit
@@ -46,18 +68,23 @@ export class DocumentsController {
       throw new BadRequestException('File is required');
     }
 
-    // Validate file content
-    const buffer = file.buffer;
+    // Validate file content by reading first 4 bytes from disk
     let isValidContent = false;
-    if (buffer.length >= 4) {
-      const header = buffer.slice(0, 4).toString();
-      if (header === '%PDF') {
-        isValidContent = true; // PDF
-      } else if (header.startsWith('PK')) {
-        // Check for DOCX (ZIP with specific content)
-        // For simplicity, assume ZIP is DOCX; in production, check for [Content_Types].xml
-        isValidContent = true; // DOCX
+    const fd = fs.openSync(file.path, 'r');
+    try {
+      const headerBuf = Buffer.alloc(4);
+      const bytesRead = fs.readSync(fd, headerBuf, 0, 4, 0);
+      if (bytesRead === 4) {
+        const header = headerBuf.toString();
+        if (header === '%PDF') {
+          isValidContent = true; // PDF
+        } else if (header.startsWith('PK')) {
+          // For simplicity, treat ZIP header as DOCX
+          isValidContent = true; // DOCX
+        }
       }
+    } finally {
+      fs.closeSync(fd);
     }
     if (!isValidContent) {
       throw new BadRequestException(
@@ -81,6 +108,14 @@ export class DocumentsController {
     const signedUrl = await this.documentsService.getSignedUrl(
       document.storagePath,
     );
+    // Clean up temporary file created by Multer
+    try {
+      if (file.path && fs.existsSync(file.path)) {
+        fs.unlinkSync(file.path);
+      }
+    } catch (e) {
+      this.logger.warn(`Failed to remove temp file: ${file.path}`);
+    }
     return this.mapDocumentWithSignedUrl(document, signedUrl);
   }
 

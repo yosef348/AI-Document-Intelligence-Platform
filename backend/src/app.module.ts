@@ -12,6 +12,7 @@ import { DocumentsModule } from './modules/documents/documents.module';
 import { IngestionModule } from './modules/ingestion/ingestion.module';
 import { EmbeddingsModule } from './modules/embeddings/embeddings.module';
 import { AgentModule } from './modules/agent/agent.module';
+import { FindingsModule } from './modules/findings/findings.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { AgentModule } from './modules/agent/agent.module';
     IngestionModule,
     EmbeddingsModule,
     AgentModule,
+    FindingsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

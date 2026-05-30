@@ -1,8 +1,14 @@
-import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHash } from 'crypto';
 import { randomUUID } from 'crypto';
 import { and, desc, eq, isNull } from 'drizzle-orm';
+import * as fs from 'fs';
 import { DatabaseService } from '../../database/database.service';
 import { documents } from '../../database/schema/documents';
 import type { Document } from '../../database/schema/documents';
@@ -22,8 +28,15 @@ export class DocumentsService {
     dto: UploadDocumentDto,
     file: Express.Multer.File,
   ): Promise<Document> {
-    // Generate checksum
-    const checksum = createHash('sha256').update(file.buffer).digest('hex');
+    // Generate checksum from file stream on disk (avoid loading whole file to memory)
+    const hash = createHash('sha256');
+    await new Promise<void>((resolve, reject) => {
+      const rs = fs.createReadStream(file.path);
+      rs.on('error', reject);
+      rs.on('data', (chunk) => hash.update(chunk));
+      rs.on('end', () => resolve());
+    });
+    const checksum = hash.digest('hex');
 
     // Generate storage path
     const uuid = randomUUID();
@@ -33,10 +46,17 @@ export class DocumentsService {
     const storagePath = `organizations/${dto.organizationId}/documents/${uuid}/${sanitizedFilename}`;
 
     // Upload file to Supabase Storage
-    const storageClient = getStorageClient(this.configService);
+    const url = this.configService.get('supabase.url', { infer: true });
+    const serviceRoleKey = this.configService.get('supabase.serviceRoleKey', {
+      infer: true,
+    });
+    const storageClient = getStorageClient(url, serviceRoleKey);
+    // Upload using a read stream from disk to avoid keeping large buffers in memory
+    const readStream = fs.createReadStream(file.path);
     const { error } = await storageClient.storage
       .from('documents')
-      .upload(storagePath, file.buffer, {
+      // Supabase JS supports Node Readable streams in Node environment
+      .upload(storagePath, readStream as unknown as any, {
         contentType: file.mimetype,
         duplex: 'half',
       });
@@ -119,7 +139,11 @@ export class DocumentsService {
   }
 
   async getSignedUrl(storagePath: string): Promise<string> {
-    const storageClient = getStorageClient(this.configService);
+    const url = this.configService.get('supabase.url', { infer: true });
+    const serviceRoleKey = this.configService.get('supabase.serviceRoleKey', {
+      infer: true,
+    });
+    const storageClient = getStorageClient(url, serviceRoleKey);
     const { data, error } = await storageClient.storage
       .from('documents')
       .createSignedUrl(storagePath, 3600);

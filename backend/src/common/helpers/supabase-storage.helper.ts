@@ -1,20 +1,27 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { ConfigService } from '@nestjs/config';
-import type { Config } from '../../config/configuration';
+
+let storageClient: SupabaseClient | null = null;
+let lastStorageUrl: string | null = null;
+let lastServiceRoleKey: string | null = null;
 
 export function getStorageClient(
-  configService: ConfigService<Config, true>,
+  url: string,
+  serviceRoleKey: string,
 ): SupabaseClient {
-  const url = configService.get('supabase.url', { infer: true });
-  const serviceRoleKey = configService.get('supabase.serviceRoleKey', {
-    infer: true,
-  });
-
-  if (!url || !serviceRoleKey) {
-    throw new Error('Supabase storage configuration is missing');
+  // Recreate client if not initialized or credentials changed
+  if (
+    !storageClient ||
+    lastStorageUrl !== url ||
+    lastServiceRoleKey !== serviceRoleKey
+  ) {
+    storageClient = createClient(url, serviceRoleKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    });
+    lastStorageUrl = url;
+    lastServiceRoleKey = serviceRoleKey;
   }
-
-  return createClient(url, serviceRoleKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+  return storageClient as SupabaseClient;
 }

@@ -12,6 +12,8 @@ export type Config = {
   };
   app: {
     nodeEnv: string;
+    port: number;
+    frontendUrl: string;
   };
 };
 
@@ -23,6 +25,11 @@ function requireEnv(name: string): string {
   return value;
 }
 
+function getOptionalEnv(name: string, defaultValue?: string): string {
+  const value = process.env[name];
+  return (value && value.trim()) || defaultValue || '';
+}
+
 export default (): Config => {
   const url = requireEnv('SUPABASE_URL');
   const anonKey = requireEnv('SUPABASE_ANON_KEY');
@@ -30,6 +37,8 @@ export default (): Config => {
   const databaseUrl = requireEnv('DATABASE_URL');
   const nodeEnv = requireEnv('NODE_ENV');
   const openAiApiKey = requireEnv('OPENAI_API_KEY');
+  const port = parseInt(getOptionalEnv('PORT', '3001'), 10);
+  const frontendUrl = getOptionalEnv('FRONTEND_URL', 'http://localhost:3000');
 
   return {
     supabase: {
@@ -45,6 +54,8 @@ export default (): Config => {
     },
     app: {
       nodeEnv,
+      port,
+      frontendUrl,
     },
   };
 };
