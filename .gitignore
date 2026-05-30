@@ -1,45 +1,37 @@
-########################################
-# Build output
-########################################
-dist/
+# Dependencies
+node_modules/
 
-########################################
+# Build outputs
+dist/
+.next/
+out/
+build/
+
+# Environment files
+.env
+.env.local
+.env.production
+
 # TypeScript build artifacts
-########################################
 *.tsbuildinfo
 tsconfig.build.tsbuildinfo
 
-########################################
-# Environment files
-########################################
-.env
-.env.local
-.env.*.local
-
-########################################
-# Dependencies
-########################################
-node_modules/
-
-########################################
 # Logs
-########################################
 *.log
-npm-debug.log
+npm-debug.log*
 
-########################################
-# OS files
-########################################
+# OS
 .DS_Store
 Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
 
-########################################
 # IDE
-########################################
 .idea/
 .vscode/
 
-########################################
-# Test coverage
-########################################
+# Testing
 coverage/
+
+# Package lock (optional - keep if you want reproducible installs)
+# package-lock.json
