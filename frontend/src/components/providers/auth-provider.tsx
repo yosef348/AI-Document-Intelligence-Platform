@@ -9,7 +9,7 @@ interface AuthProviderProps {
   children: React.ReactNode;
 }
 
-export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
+export function AuthProvider({ children }: AuthProviderProps): React.JSX.Element {
   const supabase = createClient();
   const setUser = useAuthStore((s) => s.setUser);
   const setSession = useAuthStore((s) => s.setSession);
