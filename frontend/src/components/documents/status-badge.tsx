@@ -11,19 +11,26 @@ interface StatusBadgeProps {
   className?: string;
 }
 
-const parsingConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; isLoading: boolean }> = {
+interface StatusConfig {
+  label: string;
+  variant: 'default' | 'secondary' | 'outline';
+  isLoading: boolean;
+  className?: string;
+}
+
+const parsingConfig: Record<string, StatusConfig> = {
   pending: { label: 'Pending', variant: 'secondary', isLoading: false },
   parsing: { label: 'Parsing...', variant: 'default', isLoading: true },
-  parsed: { label: 'Parsed', variant: 'default', isLoading: false },
-  failed: { label: 'Failed', variant: 'destructive', isLoading: false },
+  parsed: { label: 'Parsed', variant: 'default', isLoading: false, className: 'bg-emerald-500/10 text-emerald-500' },
+  failed: { label: 'Failed', variant: 'default', isLoading: false, className: 'bg-red-500/10 text-red-500' },
 };
 
-const processingConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; isLoading: boolean }> = {
+const processingConfig: Record<string, StatusConfig> = {
   pending: { label: 'Pending', variant: 'secondary', isLoading: false },
   indexing: { label: 'Indexing...', variant: 'default', isLoading: true },
   processing: { label: 'Analyzing...', variant: 'outline', isLoading: true },
-  completed: { label: 'Completed', variant: 'default', isLoading: false },
-  failed: { label: 'Failed', variant: 'destructive', isLoading: false },
+  completed: { label: 'Completed', variant: 'default', isLoading: false, className: 'bg-emerald-500/10 text-emerald-500' },
+  failed: { label: 'Failed', variant: 'default', isLoading: false, className: 'bg-red-500/10 text-red-500' },
 };
 
 export function StatusBadge({ status, type, className }: StatusBadgeProps): React.JSX.Element {
@@ -34,7 +41,7 @@ export function StatusBadge({ status, type, className }: StatusBadgeProps): Reac
   }
 
   return (
-    <Badge variant={config.variant} className={cn('font-medium', className)}>
+    <Badge variant={config.variant} className={cn('font-medium', config.className, className)}>
       {config.isLoading && <Loader2 size={14} className="mr-1.5 animate-spin" />}
       {config.label}
     </Badge>
