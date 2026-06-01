@@ -1,33 +1,36 @@
+import React from 'react';
 import { FileSearch } from 'lucide-react';
-import { cn } from '@/lib/utils';
+
+type LogoSize = 'sm' | 'md' | 'lg';
 
 interface LogoProps {
-  size?: 'sm' | 'md' | 'lg';
+  size?: LogoSize;
   showText?: boolean;
   className?: string;
 }
 
-const sizeMap = {
-  sm: { icon: 16, text: 'text-sm', container: 'gap-1.5' },
-  md: { icon: 20, text: 'text-lg', container: 'gap-2' },
-  lg: { icon: 28, text: 'text-2xl', container: 'gap-2.5' },
+const sizeConfig: Record<LogoSize, { icon: number; text: string }> = {
+  sm: { icon: 16, text: 'text-base' },
+  md: { icon: 20, text: 'text-lg' },
+  lg: { icon: 24, text: 'text-xl' },
 };
 
 export function Logo({
   size = 'md',
   showText = true,
-  className,
+  className = '',
 }: LogoProps): React.JSX.Element {
-  const s = sizeMap[size];
+  const config = sizeConfig[size];
 
   return (
-    <div className={cn('flex items-center', s.container, className)}>
-      <div className="flex items-center justify-center rounded-lg bg-primary p-1.5">
-        <FileSearch size={s.icon} className="text-primary-foreground" />
+    <div className={`flex items-center gap-2 ${className}`}>
+      <div className="bg-[#2563EB] rounded-lg p-1.5 flex-shrink-0">
+        <FileSearch size={config.icon} className="text-white" />
       </div>
       {showText && (
-        <span className={cn('font-semibold tracking-tight', s.text)}>
-          Doc<span className="text-primary">Intel</span>
+        <span className={`font-bold ${config.text}`}>
+          <span className="text-[#0F172A]">Doc</span>
+          <span className="text-[#2563EB]">Intel</span>
         </span>
       )}
     </div>

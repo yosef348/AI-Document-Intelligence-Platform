@@ -1,5 +1,4 @@
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import React from 'react';
 
 type Severity = 'critical' | 'high' | 'medium' | 'low' | 'info';
 
@@ -8,49 +7,33 @@ interface SeverityBadgeProps {
   className?: string;
 }
 
-const severityConfig: Record<
-  Severity,
-  { label: string; className: string }
-> = {
-  critical: {
-    label: 'Critical',
-    className: 'severity-critical border',
-  },
-  high: {
-    label: 'High',
-    className: 'severity-high border',
-  },
-  medium: {
-    label: 'Medium',
-    className: 'severity-medium border',
-  },
-  low: {
-    label: 'Low',
-    className: 'severity-low border',
-  },
-  info: {
-    label: 'Info',
-    className: 'severity-info border',
-  },
+const severityLabels: Record<Severity, string> = {
+  critical: 'Critical',
+  high: 'High',
+  medium: 'Medium',
+  low: 'Low',
+  info: 'Info',
+};
+
+const severityClasses: Record<Severity, string> = {
+  critical: 'severity-critical',
+  high: 'severity-high',
+  medium: 'severity-medium',
+  low: 'severity-low',
+  info: 'severity-info',
 };
 
 export function SeverityBadge({
   severity,
-  className,
+  className = '',
 }: SeverityBadgeProps): React.JSX.Element {
-  const config = severityConfig[severity];
+  const label = severityLabels[severity];
+  const badgeClass = severityClasses[severity];
 
   return (
-    <Badge
-      variant="outline"
-      className={cn(
-        'font-medium capitalize',
-        config.className,
-        className,
-      )}
-    >
-      <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-current" />
-      {config.label}
-    </Badge>
+    <span className={`badge ${badgeClass} ${className}`}>
+      <span className="w-1.5 h-1.5 rounded-full bg-current inline-block" />
+      {label}
+    </span>
   );
 }
