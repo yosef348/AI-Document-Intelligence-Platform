@@ -1,56 +1,56 @@
 import React from 'react';
 import { Logo } from '@/components/shared/logo';
-import { Check, ShieldAlert, Zap } from 'lucide-react';
 
-interface AuthLayoutProps {
+export default function AuthLayout({
+  children,
+}: {
   children: React.ReactNode;
-}
-
-export default function AuthLayout({ children }: AuthLayoutProps): JSX.Element {
+}): React.JSX.Element {
   return (
-    <div className="h-screen flex">
-      {/* Left side - Form */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-white">
-        <div className="w-full max-w-sm">{children}</div>
-      </div>
+    <div className="min-h-screen bg-background flex">
+      {/* Left panel - branding */}
+      <div className="hidden lg:flex lg:w-1/2 bg-sidebar-gradient flex-col justify-between p-12 border-r border-border/50">
+        <Logo size="lg" />
 
-      {/* Right side - Decorative (hidden on mobile) */}
-      <div className="hidden lg:flex lg:flex-1 items-center justify-center bg-gradient-to-br from-[#EFF6FF] to-[#F8FAFC] border-l border-[#E2E8F0]">
-        <div className="text-center">
-          {/* Logo */}
-          <Logo size="lg" />
+        <div className="space-y-6">
+          {/* Quote */}
+          <blockquote className="space-y-2">
+            <p className="text-lg text-muted-foreground leading-relaxed">
+              &quot;AI-powered document intelligence that detects risks
+              before they become problems.&quot;
+            </p>
+          </blockquote>
 
-          {/* Tagline */}
-          <p className="text-[#64748B] text-center max-w-xs mt-4 text-sm">
-            Intelligent document analysis
-          </p>
-
-          {/* Feature pills */}
-          <div className="mt-8 space-y-3">
-            {/* Contract risk detection */}
-            <div className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-sm border border-[#E2E8F0]">
-              <Check size={20} className="text-[#16A34A] flex-shrink-0" />
-              <span className="text-sm text-[#0F172A] font-medium">
-                Contract risk detection
-              </span>
+          {/* Stats grid */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-1">
+              <p className="text-2xl font-bold text-primary">98%</p>
+              <p className="text-xs text-muted-foreground">Detection accuracy</p>
             </div>
-
-            {/* Invoice anomaly detection */}
-            <div className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-sm border border-[#E2E8F0]">
-              <ShieldAlert size={20} className="text-[#2563EB] flex-shrink-0" />
-              <span className="text-sm text-[#0F172A] font-medium">
-                Invoice anomaly detection
-              </span>
+            <div className="space-y-1">
+              <p className="text-2xl font-bold text-primary">10x</p>
+              <p className="text-xs text-muted-foreground">Faster review</p>
             </div>
-
-            {/* AI-powered analysis */}
-            <div className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-sm border border-[#E2E8F0]">
-              <Zap size={20} className="text-[#D97706] flex-shrink-0" />
-              <span className="text-sm text-[#0F172A] font-medium">
-                AI-powered analysis
-              </span>
+            <div className="space-y-1">
+              <p className="text-2xl font-bold text-primary">24/7</p>
+              <p className="text-xs text-muted-foreground">Automated analysis</p>
             </div>
           </div>
+        </div>
+
+        <p className="text-xs text-muted-foreground">
+          © 2026 DocIntel. All rights reserved.
+        </p>
+      </div>
+
+      {/* Right panel — form */}
+      <div className="flex-1 flex items-center justify-center p-8">
+        <div className="w-full max-w-md">
+          {/* Logo shown only on mobile */}
+          <div className="lg:hidden mb-8">
+            <Logo size="lg" />
+          </div>
+          {children}
         </div>
       </div>
     </div>

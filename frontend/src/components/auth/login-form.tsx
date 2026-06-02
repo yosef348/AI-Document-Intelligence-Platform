@@ -3,147 +3,110 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
-import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { Logo } from '@/components/shared/logo';
-
-interface LoginFormState {
-  email: string;
-  password: string;
-  showPassword: boolean;
-  isLoading: boolean;
-  error: string | null;
-}
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { AuthCard } from '@/components/auth/auth-card';
 
 export function LoginForm(): React.JSX.Element {
   const router = useRouter();
   const supabase = createClient();
 
-  const [state, setState] = useState<LoginFormState>({
-    email: '',
-    password: '',
-    showPassword: false,
-    isLoading: false,
-    error: null,
-  });
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState<boolean>(false);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>): Promise<void> {
     e.preventDefault();
-    setState((prev) => ({ ...prev, isLoading: true, error: null }));
+    setError(null);
+    setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: state.email,
-        password: state.password,
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
 
-      if (error) {
-        setState((prev) => ({ ...prev, error: error.message, isLoading: false }));
+      if (signInError) {
+        setError(signInError.message);
+        setIsLoading(false);
         return;
       }
 
       router.push('/dashboard');
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
-      setState((prev) => ({ ...prev, error: errorMessage, isLoading: false }));
+      setError((err as Error).message ?? 'Sign in failed');
+      setIsLoading(false);
     }
-  };
-
-  const updateState = (updates: Partial<LoginFormState>): void => {
-    setState((prev) => ({ ...prev, ...updates }));
-  };
+  }
 
   return (
-    <div>
-      {/* Logo */}
-      <Logo size="md" showText={false} />
+    <AuthCard title="Welcome back" subtitle="Sign in to your DocIntel account">
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+        {error && (
+          <Alert className="mb-2">
+            <AlertTitle>Authentication error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-      {/* Title */}
-      <h1 className="text-3xl font-semibold text-[#0F172A] mt-8">Log in</h1>
-
-      {/* Subtitle */}
-      <p className="text-sm text-[#64748B] mt-2">
-        Welcome back! Please enter your details.
-      </p>
-
-      {/* Form */}
-      <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-        {/* Email field */}
         <div>
-          <label className="label">Email</label>
-          <input
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            name="email"
             type="email"
-            className="input"
-            placeholder="Enter your email"
-            value={state.email}
-            onChange={(e) => updateState({ email: e.target.value })}
+            value={email}
+            onChange={(ev) => setEmail(ev.target.value)}
+            placeholder="you@company.com"
             required
-            disabled={state.isLoading}
+            className="mt-1"
           />
         </div>
 
-        {/* Password field */}
         <div>
-          <label className="label">Password</label>
-          <div className="relative">
-            <input
-              type={state.showPassword ? 'text' : 'password'}
-              className="input pr-10"
-              placeholder="Enter your password"
-              value={state.password}
-              onChange={(e) => updateState({ password: e.target.value })}
+          <Label htmlFor="password">Password</Label>
+          <div className="relative mt-1">
+            <Input
+              id="password"
+              name="password"
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(ev) => setPassword(ev.target.value)}
+              placeholder="••••••••"
               required
-              disabled={state.isLoading}
             />
             <button
               type="button"
-              onClick={() => updateState({ showPassword: !state.showPassword })}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#64748B] transition-colors"
-              disabled={state.isLoading}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              onClick={() => setShowPassword((s) => !s)}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground"
             >
-              {state.showPassword ? (
-                <EyeOff size={16} />
-              ) : (
-                <Eye size={16} />
-              )}
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
         </div>
 
-        {/* Error alert */}
-        {state.error && (
-          <div className="bg-[#FEE2E2] border border-[#FECACA] rounded-lg px-4 py-3 text-sm text-[#DC2626]">
-            {state.error}
+        <div className="flex items-center justify-between">
+          <div className="text-xs text-muted-foreground pointer-events-none opacity-70">Forgot password?</div>
+          <div className="text-xs">
+            <a href="/signup" className="text-primary hover:underline">
+              Don&apos;t have an account?
+            </a>
           </div>
-        )}
+        </div>
 
-        {/* Submit button */}
-        <button
-          type="submit"
-          className="btn-primary w-full"
-          disabled={state.isLoading}
-        >
-          {state.isLoading ? (
-            <>
-              <Loader2 size={16} className="animate-spin" />
-              Signing in...
-            </>
-          ) : (
-            'Login'
-          )}
-        </button>
+        <div>
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Sign in
+          </Button>
+        </div>
       </form>
-
-      {/* Footer */}
-      <p className="mt-6 text-center text-sm text-[#64748B]">
-        Don&apos;t have an account?{' '}
-        <Link
-          href="/signup"
-          className="text-[#2563EB] font-medium hover:underline"
-        >
-          Sign up
-        </Link>
-      </p>
-    </div>
+    </AuthCard>
   );
 }
